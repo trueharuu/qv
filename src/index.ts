@@ -51,7 +51,7 @@ export default {
 		} else if (path.startsWith('/pre-render/pc')) {
 			return new Response(prerender_pc(u.searchParams.get('queue')!), { headers: { 'Content-Type': 'application/json' } });
 		} else {
-			return new Response('404', { headers: { 'Content-Type': 'text/plain' } });
+			return new Response('<h1>404</h1>', { headers: { 'Content-Type': 'text/html',  }, status: 404 });
 		}
 	},
 } satisfies ExportedHandler;
