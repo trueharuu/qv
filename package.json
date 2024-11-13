@@ -15,5 +15,11 @@
     "typescript": "^5.5.2",
     "vitest": "2.0.5",
     "wrangler": "^3.60.3"
+  },
+  "dependencies": {
+    "@types/pngjs": "^6.0.5",
+    "pako": "^2.1.0",
+    "pngjs": "^7.0.0",
+    "pureimage": "^0.4.18"
   }
 }
