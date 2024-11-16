@@ -8,6 +8,7 @@ export enum Piece {
 	T = 'T',
 	G = 'G',
 	E = 'E',
+	D = 'D',
 }
 export type Grid = Array<Array<Piece>>;
 export function piece_from_str(f: string): Piece {
@@ -28,6 +29,8 @@ export function piece_from_str(f: string): Piece {
 			return Piece.T;
 		case 'G':
 			return Piece.G;
+		case 'D':
+			return Piece.D;
 		case 'E':
 		default:
 			return Piece.E;
@@ -52,6 +55,8 @@ export function piece_to_str(f: Piece): string {
 			return 'T';
 		case Piece.G:
 			return 'G';
+		case Piece.D:
+			return 'D';
 		case Piece.E:
 		default:
 			return 'E';
@@ -76,6 +81,8 @@ export function piece_color(p: Piece): number {
 			return 0x9739a2ff;
 		case Piece.G:
 			return 0x868686ff;
+		case Piece.D:
+			return 0x434343ff;
 		case Piece.E:
 			return 0;
 	}
@@ -99,6 +106,8 @@ export function piece_color_bright(p: Piece): number {
 			return 0xd958e9ff;
 		case Piece.G:
 			return 0xddddddff;
+		case Piece.D:
+			return 0x777777ff;
 		case Piece.E:
 			return 0;
 	}

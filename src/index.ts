@@ -4,19 +4,24 @@ import { Readable, Writable, Transform } from 'stream';
 import { render_grid } from './render';
 import { listren, listren_specific } from './listren';
 import { CSS } from './data';
-import { combo_finder, pc_finder } from './static';
+import { combo_finder, home, pc_finder, renderguide } from './static';
 import { prerender_combo, prerender_pc, prerender_pc_list } from './prerender';
 export default {
 	async fetch(request) {
 		const u = new URL(request.url);
 		const path = u.pathname;
 
-		if (path === '/render') {
+		if (path === '/') {
+			return new Response(home, { headers: { 'Content-Type': 'text/html' } });
+		} else if (path === '/render/guide') {
+			return new Response(renderguide, { headers: { 'Content-Type': 'text/html' } });
+		} else if (path === '/render') {
 			const p = u.searchParams.get('grid')!;
 			const scale = Number(u.searchParams.get('scale') || '4');
-			const lc = u.searchParams.get('clear') == 'true';
+			const lc = u.searchParams.get('clear') == 'true' || u.searchParams.get('lcs') == 'true';
+			const mir = u.searchParams.get('mirror') == 'true';
 
-			const b = await render_grid(p, true, lc, scale);
+			const b = await render_grid(p, true, lc, scale, mir);
 
 			return new Response(b, { headers: { 'Content-Type': 'image/png' } });
 		} else if (path.startsWith('/list/ren')) {
@@ -51,7 +56,7 @@ export default {
 		} else if (path.startsWith('/pre-render/pc')) {
 			return new Response(prerender_pc(u.searchParams.get('queue')!), { headers: { 'Content-Type': 'application/json' } });
 		} else {
-			return new Response('404', { headers: { 'Content-Type': 'text/plain' } });
+			return new Response('404', { headers: { 'Content-Type': 'text/plain' }, status: 404 });
 		}
 	},
 } satisfies ExportedHandler;

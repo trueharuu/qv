@@ -1062,7 +1062,11 @@ body {
 }
 
 h1 {
-    font-size: 48px
+    font-size: 3rem
+}
+
+h2 {
+    font-size: 2rem
 }
 
 i {
@@ -1075,11 +1079,10 @@ i {
 
 .mino {
     font-family: 'MinoFont';
-    font-size: 24px;
+    font-size: 1.5rem;
 }
 
 input {
-    text-transform: uppercase;
     caret-color: var(--meta);
     outline: none;
     background-color: var(--bg);
@@ -1088,6 +1091,14 @@ input {
     width: fit-content;
     border-bottom-width: 1px;
     font-family: 'Inter'
+}
+
+.uc {
+    text-transform: uppercase;
+}
+
+input[type=checkbox] {
+    
 }
 
 input[type=number] {
@@ -1103,4 +1114,6 @@ input[type=number] {
 
 .ib {
     display: inline-block
-}`;
+}
+    
+`;

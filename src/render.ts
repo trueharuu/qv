@@ -1,5 +1,5 @@
 import { PNG } from 'pngjs';
-import { Grid, Piece, piece_color, piece_color_bright, piece_from_str } from './piece';
+import { Grid, mirror_grid, Piece, piece_color, piece_color_bright, piece_from_str } from './piece';
 
 export async function parallel<T, U>(v: Array<T>, f: (t: T, idx: number) => Promise<U>): Promise<Array<U>> {
 	return await Promise.all(v.map((x, i) => f(x, i)));
@@ -11,9 +11,16 @@ const SHADING = 4 / 4;
 const PADDING = 8 / 4;
 const SHADOW = 0x26262aff;
 export const rmemo = new Map();
-export async function render_grid(g: string, spec: boolean = true, lcs: boolean = true, scale: number = 4): Promise<Buffer> {
+export async function render_grid(
+	g: string,
+	spec: boolean = true,
+	lcs: boolean = true,
+	scale: number = 4,
+	mir: boolean = false
+): Promise<Buffer> {
 	const grid = g.split('|').map((x) => [...x]);
-	const ng = preprocess_grid(grid);
+	const ng = mir ? mirror_grid(preprocess_grid(grid)) : preprocess_grid(grid);
+
 	const id = `${ng.map((x) => x.join('')).join('|')}@${spec}@${lcs}@${scale}`;
 	if (rmemo.has(id)) {
 		return rmemo.get(id)!;
