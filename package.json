@@ -17,7 +17,9 @@
     "wrangler": "^3.60.3"
   },
   "dependencies": {
+    "@types/gif-encoder": "^0.7.4",
     "@types/pngjs": "^6.0.5",
+    "gif-encoder": "^0.7.2",
     "pako": "^2.1.0",
     "pngjs": "^7.0.0",
     "pureimage": "^0.4.18"

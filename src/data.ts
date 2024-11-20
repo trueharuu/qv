@@ -1005,7 +1005,7 @@ pn4:ltzs=lllt|lztt|zzss|zsst
 pn4:lttz=lllt|lztt|zztt|zttt
 pn4:jzst=jzss|jjjt|zztt|zsst`;
 export const CSS = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap');
 @font-face {
     font-family: MinoFont;
     font-style: normal;

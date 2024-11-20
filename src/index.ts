@@ -15,15 +15,19 @@ export default {
 			return new Response(home, { headers: { 'Content-Type': 'text/html' } });
 		} else if (path === '/render/guide') {
 			return new Response(renderguide, { headers: { 'Content-Type': 'text/html' } });
-		} else if (path === '/render') {
-			const p = u.searchParams.get('grid')!;
+		} else if (path === '/render.gif' || path === '/render.png' || path === '/render') {
+			const p = u.searchParams.get('grid') || '';
 			const scale = Number(u.searchParams.get('scale') || '4');
 			const lc = u.searchParams.get('clear') == 'true' || u.searchParams.get('lcs') == 'true';
 			const mir = u.searchParams.get('mirror') == 'true';
+			const lp = u.searchParams.get('loop') !== 'false';
+			const delay = Number(u.searchParams.get('delay') || '500');
 
-			const b = await render_grid(p, true, lc, scale, mir);
+			const is_many_frames = p.includes(';');
 
-			return new Response(b, { headers: { 'Content-Type': 'image/png' } });
+			const b = await render_grid(p, true, lc, scale, mir, delay, lp);
+
+			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
 		} else if (path.startsWith('/list/ren')) {
 			const parts = path.slice('/list/ren/'.length).split('/');
 			console.log(parts);

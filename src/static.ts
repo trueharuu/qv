@@ -25,15 +25,14 @@ export const combo_finder = `<html>
       }
 
       async function go(t) {
-        if (t.key === 'Enter') {
-          await search(rx.value, px.value, fx.value, hx.value);
-        }
+        console.log(t);
+        await search(rx.value, px.value, fx.value, hx.value);
       }
 
-      fx.onkeydown = go;
-      hx.onkeydown = go;
-      rx.onkeydown = go;
-      px.onkeydown = go;
+      fx.onkeyup = go;
+      hx.onkeyup = go;
+      rx.onkeyup = go;
+      px.onkeyup = go;
 
       search(rx.value, px.value, fx.value, hx.value);
 
@@ -282,12 +281,15 @@ export const renderguide = `<html>
       <input id=i placeholder='some grid...' value=oe2o||oe2o|o4></input>
       <br><br>
       <input id=c type=checkbox>Line Clears</input>
+      <input id=m type=checkbox>Mirror</input>
       <br>
       <input size=2 value=4 placeholder=4 id=s type=number>x Scale </input>
     </div>
     <div>
       <h3>Output</h3>
         <img id=o>
+        <br>
+        <button id=cpyu>Copy URL</button>
     </div>
   </div>
 
@@ -296,15 +298,41 @@ export const renderguide = `<html>
     const c = document.getElementById('c');
     const s = document.getElementById('s');
     const o = document.getElementById('o');
+    const m = document.getElementById('m');
+    // const cpy = document.getElementById('cpy');
+    const cpyu = document.getElementById('cpyu');
+
+    function uri() {
+      return \`\${window.location.origin}/render.gif?grid=\${i.value}&scale=\${s.value}&clear=\${c.checked}&mirror=\${m.checked}\`;
+    }
 
     function update(z) {
-      o.src = \`/render?grid=\${i.value}&scale=\${s.value}&clear=\${c.checked}\`;
+      o.src = uri();
+    }
+
+    function copy_url(z) {
+        const type = 'text/plain';
+        const text = uri();
+        const blob = new Blob([text], { type });
+        const data = [new ClipboardItem({ [type]: blob })];
+        navigator.clipboard.write(data);
+    }
+
+    async function copy_image(z) {
+        const type = 'image/png';
+        const r = await fetch(uri());
+        const text = await r.blob();
+        const data = [new ClipboardItem({ [type]: text })];
+        navigator.clipboard.write(data);
     }
 
     update();
     i.onkeyup = update;
     c.onchange = update;
+    m.onchange = update;
     s.onkeyup = update;
+    cpyu.onclick = copy_url;
+    // cpy.onclick = copy_image;
   </script>
 </body>
 

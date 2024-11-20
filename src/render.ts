@@ -1,9 +1,11 @@
 import { PNG } from 'pngjs';
+import GIF from 'gif-encoder';
 import { Grid, mirror_grid, Piece, piece_color, piece_color_bright, piece_from_str } from './piece';
 
 export async function parallel<T, U>(v: Array<T>, f: (t: T, idx: number) => Promise<U>): Promise<Array<U>> {
 	return await Promise.all(v.map((x, i) => f(x, i)));
 }
+
 const BW = 20 / 4;
 const BH = 20 / 4;
 const HL = 4 / 4;
@@ -16,23 +18,66 @@ export async function render_grid(
 	spec: boolean = true,
 	lcs: boolean = true,
 	scale: number = 4,
-	mir: boolean = false
+	mir: boolean = false,
+	delay: number = 500,
+	loop: boolean = true
 ): Promise<Buffer> {
-	const grid = g.split('|').map((x) => [...x]);
-	const ng = mir ? mirror_grid(preprocess_grid(grid)) : preprocess_grid(grid);
+	const t = g.split(';');
+	const f = t.map((g) => g.split('|').map((x) => [...x])).map((grid) => (mir ? mirror_grid(preprocess_grid(grid)) : preprocess_grid(grid)));
 
-	const id = `${ng.map((x) => x.join('')).join('|')}@${spec}@${lcs}@${scale}`;
+	const id = `${f.map((ng) => ng.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}`;
 	if (rmemo.has(id)) {
 		return rmemo.get(id)!;
 	}
 
-	console.log(ng);
+	if (f.length > 1) {
+		const wi = Math.max(...f.map((ng) => scale * Math.max(ng[0].length * BW + 2 * PADDING, 0)));
+		const hi = Math.max(...f.map((ng) => scale * (ng.length * BH + 2 * PADDING + HL)));
+		const gif = new GIF(wi, hi);
 
-	const img = new PNG({
-		width: scale * Math.max(ng[0].length * BW + 2 * PADDING, 0),
-		height: scale * (ng.length * BH + 2 * PADDING + HL),
-	});
+		gif.setRepeat(loop ? 0 : -1);
+		gif.writeHeader();
+		gif.setDelay(delay);
+		gif.setTransparent(0x000000);
+		const chunks: Buffer[] = [];
 
+		gif.on('data', (chunk) => {
+			console.log(chunk);
+			chunks.push(chunk);
+		});
+		for (const ng of f) {
+			// const width = scale * Math.max(ng[0].length * BW + 2 * PADDING, 0);
+			// const height = scale * (ng.length * BH + 2 * PADDING + HL);
+			const buf = new Array(4 * wi * hi).fill(0);
+			render_frame(ng, buf, wi, lcs, spec, scale, setPixelAt);
+			gif.addFrame(buf);
+		}
+		gif.finish();
+		const gb = Buffer.concat(chunks);
+		rmemo.set(id, gb);
+		return gb;
+	} else {
+		const ng = f[0];
+		const img = new PNG({
+			width: scale * Math.max(ng[0].length * BW + 2 * PADDING, 0),
+			height: scale * (ng.length * BH + 2 * PADDING + HL),
+		});
+		render_frame(ng, img.data, img.width, lcs, spec, scale, setPixelAt);
+		const buf = PNG.sync.write(img);
+		rmemo.set(id, buf);
+		return buf;
+	}
+}
+
+export function render_frame(
+	ng: Grid,
+	buf: any,
+	width: number,
+	lcs: boolean,
+	spec: boolean,
+	scale: number,
+	setPixelAt: (arg0: any, arg1: number, arg2: number, arg3: number, arg4: number, arg5: number) => void
+) {
 	for (let i = 0; i < ng.length; i++) {
 		const r = ng[i];
 		for (let j = 0; j < r.length; j++) {
@@ -44,7 +89,7 @@ export async function render_grid(
 			const col = lcs && is_line_clear ? applyFilters(pix, 1.2, 0.8) : pix;
 			for (let pi = i * BW; pi < (i + 1) * BW; pi++) {
 				for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-					setPixelAt(img, pj + PADDING + 1, pi + PADDING, scale, col);
+					setPixelAt(buf, width, pj + PADDING + 1, pi + PADDING, scale, col);
 				}
 			}
 
@@ -52,16 +97,12 @@ export async function render_grid(
 			if (has_air && spec) {
 				for (let pi = i * BW; pi < i * BW + HL; pi++) {
 					for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-						setPixelAt(img, pj + PADDING + 1, pi + PADDING - HL, scale, hl);
+						setPixelAt(buf, width, pj + PADDING + 1, pi + PADDING - HL, scale, hl);
 					}
 				}
 			}
 		}
 	}
-
-	const buf = PNG.sync.write(img);
-	rmemo.set(id, buf);
-	return buf;
 }
 
 export function preprocess_grid(grid: Array<Array<string>>): Grid {
@@ -100,22 +141,22 @@ export function preprocess_grid(grid: Array<Array<string>>): Grid {
 	];
 }
 
-export function setSinglePixelAt(p: PNG, x: number, y: number, c: number) {
-	const i = (p.width * y + x) << 2;
+export function setSinglePixelAt(p: Array<number>, width: number, x: number, y: number, c: number) {
+	const i = (width * y + x) * 4;
 	const [r, g, b, a] = to_rgba(c);
-	p.data[i] = r;
-	p.data[i + 1] = g;
-	p.data[i + 2] = b;
-	p.data[i + 3] = a;
+	p[i] = r;
+	p[i + 1] = g;
+	p[i + 2] = b;
+	p[i + 3] = a;
 }
 
-export function setPixelAt(p: PNG, x: number, y: number, scale: number, c: number) {
+export function setPixelAt(p: Array<number>, w: number, x: number, y: number, scale: number, c: number) {
 	if (scale === 1) {
-		return setSinglePixelAt(p, x, y, c);
+		return setSinglePixelAt(p, w, x, y, c);
 	}
 	for (let i = x * scale; i < (x + 1) * scale; i++) {
 		for (let j = y * scale; j < (y + 1) * scale; j++) {
-			setSinglePixelAt(p, i, j, c);
+			setSinglePixelAt(p, w, i, j, c);
 		}
 	}
 }
