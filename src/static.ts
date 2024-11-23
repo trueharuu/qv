@@ -795,15 +795,21 @@ export const board_editor = `<html>
     colsInput.addEventListener('keyup', handleResize);
     colsInput.addEventListener('change', handleResize);
 
-    function scrollResize(e, input) {
+    function scrollResize(e, input, min = 0, step = 1) {
       e.preventDefault();
-      const delta = e.deltaY < 0 ? 1 : -1;
-      input.value = Math.max(1, parseInt(input.value) + delta).toString();
-      handleResize();
+      const delta = e.deltaY < 0 ? step : -step;
+      input.value = Math.max(min, parseInt(input.value) + delta).toString();
+      if (input === delay) {
+        updatePreview();
+      } else {
+        handleResize();
+      }
     }
 
-    rowsInput.addEventListener('wheel', (e) => scrollResize(e, rowsInput));
-    colsInput.addEventListener('wheel', (e) => scrollResize(e, colsInput));
+    rowsInput.addEventListener('wheel', (e) => scrollResize(e, rowsInput, 1));
+    colsInput.addEventListener('wheel', (e) => scrollResize(e, colsInput, 1));
+    delay.addEventListener('wheel', (e) => scrollResize(e, delay, 0, 49));
+
     initializeBoard();
 
     document.querySelectorAll('.piece-selector span').forEach(span => {
@@ -1032,6 +1038,8 @@ export const board_editor = `<html>
     }
 
     delay.addEventListener('input', updatePreview);
+
+    delay.addEventListener('wheel', (e) => scrollResize(e, delay, 50));
 
     document.getElementById('clear').addEventListener('change', updatePreview);
     document.getElementById('loop').addEventListener('change', updatePreview);
