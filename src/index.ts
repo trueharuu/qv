@@ -4,7 +4,7 @@ import { Readable, Writable, Transform } from 'stream';
 import { render_grid } from './render';
 import { listren, listren_specific } from './listren';
 import { CSS } from './data';
-import { combo_finder, home, pc_finder, renderguide } from './static';
+import { board_editor, combo_finder, home, pc_finder, renderguide } from './static';
 import { prerender_combo, prerender_pc, prerender_pc_list } from './prerender';
 import { decoder, encoder, Field } from 'tetris-fumen';
 import { fumenToGrid, gridToFumen } from './fumen';
@@ -69,6 +69,8 @@ export default {
 			return new Response(CSS, { headers: { 'Content-Type': 'text/css' } });
 		} else if (path === '/tools/combo-finder') {
 			return new Response(combo_finder, { headers: { 'Content-Type': 'text/html' } });
+		} else if (path === '/tools/board-editor') {
+			return new Response(board_editor, { headers: { 'Content-Type': 'text/html' } });
 		} else if (path.startsWith('/pre-render/combo')) {
 			return new Response(
 				await prerender_combo(
