@@ -791,21 +791,9 @@ export const board_editor = `<html>
     }
 
     rowsInput.addEventListener('keyup', handleResize);
+    rowsInput.addEventListener('change', handleResize);
     colsInput.addEventListener('keyup', handleResize);
-    // rowsInput.addEventListener('blur', handleResize);
-    // colsInput.addEventListener('blur', handleResize);
-
-    rowsInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.target.blur();
-      }
-    });
-
-    colsInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.target.blur();
-      }
-    });
+    colsInput.addEventListener('change', handleResize);
 
     initializeBoard();
 
@@ -877,18 +865,18 @@ export const board_editor = `<html>
 			document.getElementById('removePage').disabled = pages.length <= 1;
     }
 
-      function expandString(input) {
-	      const regex = /(?:\\[(\\w+)\\]|(\\w))(\\d*)/g;
-        const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
-        // console.log(i);
-        // console.log(input, i);
-        if (input === i) {
-          return i;
-        }
-
-        return expandString(i);
+    function expandString(input) {
+      const regex = /(?:\\[(\\w+)\\]|(\\w))(\\d*)/g;
+      const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
+      // console.log(i);
+      // console.log(input, i);
+      if (input === i) {
+        return i;
       }
-        // console.log(expandString('E2'));
+
+      return expandString(i);
+    }
+    // console.log(expandString('E2'));
 
     function importPage(update = true) {
       console.log(1);
@@ -945,7 +933,7 @@ export const board_editor = `<html>
           }
         }
       });
-      
+
       updateOutput(update);
     }
 
