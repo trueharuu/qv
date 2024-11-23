@@ -792,8 +792,10 @@ export const board_editor = `<html>
 
     rowsInput.addEventListener('keyup', handleResize);
     colsInput.addEventListener('keyup', handleResize);
-    // rowsInput.addEventListener('blur', handleResize);
-    // colsInput.addEventListener('blur', handleResize);
+    rowsInput.addEventListener('blur', handleResize);
+    colsInput.addEventListener('blur', handleResize);
+    rowsInput.addEventListener('change', handleResize);
+    colsInput.addEventListener('change', handleResize);
 
     rowsInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
