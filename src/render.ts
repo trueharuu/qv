@@ -116,23 +116,21 @@ export function render_frame(
 	}
 }
 
-export function expandString(input: string): string {
-	let result = '';
-	const regex = /([a-zA-Z])(\d+)/g;
-	let match;
-
-	while ((match = regex.exec(input)) !== null) {
-		const [_, char, count] = match;
-		result += char.repeat(parseInt(count, 10));
+export function expandString(input: string) {
+	const regex = /(?:\[(\w+)\]|(\w))(\d*)/g;
+	const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
+	// console.log(i);
+	// console.log(input, i);
+	if (input === i) {
+		return i;
 	}
 
-	return result;
+	return expandString(i);
 }
 
 export function preprocess_grid(grid: Array<Array<string>>): Grid {
-	const grid2 = expandString(grid.map((x) => x.join('')).join('|'))
-		.split('|')
-		.map((x) => x.split(''));
+	const grid2 = grid.map((x) => expandString(x.join('')));
+	console.log(grid, grid2);
 	const ng: Array<Array<string>> = [];
 	for (const i of grid2) {
 		const nr = [];

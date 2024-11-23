@@ -1037,7 +1037,8 @@ export const CSS = `@import url('https://fonts.googleapis.com/css2?family=Inter:
     --cw: 20px;
     --cb: 16px;
     --ch: 4px;
-    --d: #ffffff44;
+    --d: #434343ff;
+    --db: #777777ff;
     --tg: #00000055;
     --meta: #868686
 }

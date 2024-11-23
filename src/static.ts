@@ -568,6 +568,7 @@ export const board_editor = `<html>
           <span style="background:var(--z)" data-piece="Z">Z</span>
           <span style="background:var(--t)" data-piece="T">T</span>
           <span style="background:var(--g)" data-piece="G">G</span>
+          <span style="background:var(--d)" data-piece="G">D</span>
         </div>
         <div>
           <label>Size: </label>
@@ -587,7 +588,7 @@ export const board_editor = `<html>
         <div style="display:flex;gap:10px;margin:10px 0">
           <button onclick="copyOutput()">Copy Text</button>
           <button onclick="copyFumen()">Copy Fumen</button>
-          <button onclick="importText()">Import Text</button>
+          <button onclick="importText(false)">Import Text</button>
         </div>
         <div class="fumen-input">
           <label>Import Fumen:</label>
@@ -760,7 +761,7 @@ export const board_editor = `<html>
           });
         }
       }
-      updateOutput();
+      updateOutput(false);
     }
 
     document.addEventListener('mouseup', () => {
@@ -837,7 +838,7 @@ export const board_editor = `<html>
       updateOutput();
     }
 
-    function updateOutput() {
+    function updateOutput(update = true) {
       const grid = [];
       for (let i = 0; i < ROWS; i++) {
         const row = [];
@@ -858,7 +859,10 @@ export const board_editor = `<html>
       }
       const gridString = grid.join('|');
       pages[currentPage] = gridString;
-      output.value = pages.join(';');
+      // console.log(update);
+      if (update) {
+        output.value = pages.join(';');
+      }
       updatePreview();
     }
 
@@ -873,22 +877,24 @@ export const board_editor = `<html>
 			document.getElementById('removePage').disabled = pages.length <= 1;
     }
 
-    function importPage() {
-      function expandString(input: string): string {
-	      let result = '';
-	      const regex = /([a-zA-Z])(\d+)/g;
-	      let match;
+      function expandString(input) {
+	      const regex = /(?:\\[(\\w+)\\]|(\\w))(\\d*)/g;
+        const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
+        // console.log(i);
+        // console.log(input, i);
+        if (input === i) {
+          return i;
+        }
 
-	      while ((match = regex.exec(input)) !== null) {
-		      const [_, char, count] = match;
-		      result += char.repeat(parseInt(count, 10));
-      	}
-
-	      return result;
+        return expandString(i);
       }
+        // console.log(expandString('E2'));
 
+    function importPage(update = true) {
+      console.log(1);
       const currentGrid = pages[currentPage] || 'E'.repeat(COLS).repeat(ROWS);
-      const rows = currentGrid.split('|');
+      const rows = currentGrid.split('|').map(x=>expandString(x));
+      console.log("rows", rows);
 
       const prevRows = ROWS;
       const prevCols = COLS;
@@ -939,7 +945,8 @@ export const board_editor = `<html>
           }
         }
       });
-      updateOutput();
+      
+      updateOutput(update);
     }
 
     document.getElementById('prevPage').onclick = () => {
@@ -967,7 +974,7 @@ export const board_editor = `<html>
     document.getElementById('newPage').onclick = () => {
       currentPage = pages.length - 1;
       importPage();
-      console.log(pages);
+      // console.log(pages);
       pages.push(pages[currentPage]);
       currentPage++;
       importPage();
@@ -981,19 +988,17 @@ export const board_editor = `<html>
       }
     }
 
-    function importText() {
+    function importText(update = true) {
       saveState();
-      const text = output.value;
-      if (!/^[IJLOSZGTE0-9|;]*$/i.test(text)) return;
-
+      const text = expandString(output.value);
       pages = text.split(';');
-
       currentPage = 0;
-      importPage();
+      // console.log(pages);
+      importPage(update);
     }
 
-    output.addEventListener('input', () => {
-      if (/^[IJLOSZGTE0-9|;]*$/i.test(output.value)) importText();
+    output.addEventListener('keyup', () => {
+      importText(false);
     });
 
     function copyOutput() {
@@ -1034,7 +1039,7 @@ export const board_editor = `<html>
     document.getElementById('clear').addEventListener('change', updatePreview);
     document.getElementById('loop').addEventListener('change', updatePreview);
 
-    updateOutput();
+    updateOutput(false);
   </script>
 </body>
 </html>`;
