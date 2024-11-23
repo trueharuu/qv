@@ -623,425 +623,456 @@ export const board_editor = `<html>
   </div>
 
   <script>
-  let isDrawing = false;
-  const preview = document.getElementById('preview');
-  const rowsInput = document.getElementById('rows');
-  const colsInput = document.getElementById('cols');
-    let ROWS = rowsInput.value || 4;
-    let COLS = colsInput.value || 10;
-    const delay = document.getElementById('delay');
-    let selectedPiece = 'E';
-    let currentPage = 0;
-    let pages = [''];
+		let isDrawing = false;
+		let currentDragPiece = null;
+		let isDragDeleting = false;
+		const preview = document.getElementById('preview');
+		const rowsInput = document.getElementById('rows');
+		const colsInput = document.getElementById('cols');
+		let ROWS = rowsInput.value || 4;
+		let COLS = colsInput.value || 10;
+		const delay = document.getElementById('delay');
+		let selectedPiece = 'E';
+		let currentPage = 0;
+		let pages = [''];
 
-    const undoStack = [];
-    const redoStack = [];
+		const undoStack = [];
+		const redoStack = [];
 
-    function saveState() {
-      undoStack.push(JSON.stringify({
-        pages,
-        currentPage,
-        ROWS,
-        COLS
-      }));
-      redoStack.length = 0; // clear redo when new state is saved
-    }
+		function saveState() {
+			undoStack.push(JSON.stringify({
+				pages,
+				currentPage,
+				ROWS,
+				COLS
+			}));
+			redoStack.length = 0; // clear redo when new state is saved
+		}
 
-    function undo() {
-      if (undoStack.length === 0) return;
-      const state = JSON.parse(undoStack.pop());
-      redoStack.push(JSON.stringify({
-        pages,
-        currentPage,
-        ROWS,
-        COLS
-      }));
+		function undo() {
+			if (undoStack.length === 0) return;
+			const state = JSON.parse(undoStack.pop());
+			redoStack.push(JSON.stringify({
+				pages,
+				currentPage,
+				ROWS,
+				COLS
+			}));
 
-      pages = state.pages;
-      currentPage = state.currentPage;
-      ROWS = state.ROWS;
-      COLS = state.COLS;
-      rowsInput.value = ROWS;
-      colsInput.value = COLS;
-      importPage();
-    }
+			pages = state.pages;
+			currentPage = state.currentPage;
+			ROWS = state.ROWS;
+			COLS = state.COLS;
+			rowsInput.value = ROWS;
+			colsInput.value = COLS;
+			importPage();
+		}
+    
+		function redo() {
+			if (redoStack.length === 0) return;
+			const state = JSON.parse(redoStack.pop());
+			undoStack.push(JSON.stringify({
+				pages,
+				currentPage,
+				ROWS,
+				COLS
+			}));
 
-    function redo() {
-      if (redoStack.length === 0) return;
-      const state = JSON.parse(redoStack.pop());
-      undoStack.push(JSON.stringify({
-        pages,
-        currentPage,
-        ROWS,
-        COLS
-      }));
+			pages = state.pages;
+			currentPage = state.currentPage;
+			ROWS = state.ROWS;
+			COLS = state.COLS;
+			rowsInput.value = ROWS;
+			colsInput.value = COLS;
+			importPage();
+		}
 
-      pages = state.pages;
-      currentPage = state.currentPage;
-      ROWS = state.ROWS;
-      COLS = state.COLS;
-      rowsInput.value = ROWS;
-      colsInput.value = COLS;
-      importPage();
-    }
+		document.addEventListener('keydown', (e) => {
+			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-    document.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+			const key = e.key.toUpperCase();
+			if (e.ctrlKey && key === 'Z') {
+				e.preventDefault();
+				if (e.shiftKey) {
+					redo();
+				} else {
+					undo();
+				}
+			} else if (e.ctrlKey && key === 'Y') {
+				e.preventDefault();
+				redo();
+			} else if (!e.ctrlKey && 'IJLOSZGTE'.includes(key)) {
+				const pieceElement = document.querySelector(\`[data-piece="\${key}"]\`);
+				if (pieceElement) {
+					document.querySelector('.piece-selector .selected').classList.remove('selected');
+					pieceElement.classList.add('selected');
+					selectedPiece = key;
+				}
+			} else if (e.ctrlKey && key === 'C') {
+				copyOutput();
+			} else if (e.ctrlKey && key === 'V') {
+				pasteOutput();
+			}
+		});
 
-      const key = e.key.toUpperCase();
-      if (e.ctrlKey && key === 'Z') {
-        e.preventDefault();
-        if (e.shiftKey) {
-          redo();
-        } else {
-          undo();
-        }
-      } else if (e.ctrlKey && key === 'Y') {
-        e.preventDefault();
-        redo();
-      } else if (!e.ctrlKey && 'IJLOSZGTE'.includes(key)) {
-        const pieceElement = document.querySelector(\`[data-piece="\${key}"]\`);
-        if (pieceElement) {
-          document.querySelector('.piece-selector .selected').classList.remove('selected');
-          pieceElement.classList.add('selected');
-          selectedPiece = key;
-        }
-      } else if (e.ctrlKey && key === 'C') {
-        copyOutput();
-      } else if (e.ctrlKey && key === 'V') {
-        pasteOutput();
-      }
-    });
+		function initializeBoard() {
+			const oldState = [];
+			if (board.rows.length > 0) {
+				for (let i = 0; i < board.rows.length; i++) {
+					oldState[i] = [];
+					for (let j = 0; j < board.rows[i].cells.length; j++) {
+						oldState[i][j] = board.rows[i].cells[j].textContent;
+					}
+				}
+			}
 
-    function initializeBoard() {
-      const oldState = [];
-      if (board.rows.length > 0) {
-        for (let i = 0; i < board.rows.length; i++) {
-          oldState[i] = [];
-          for (let j = 0; j < board.rows[i].cells.length; j++) {
-            oldState[i][j] = board.rows[i].cells[j].textContent;
-          }
-        }
-      }
+			board.innerHTML = '';
+			for (let i = 0; i < ROWS; i++) {
+				const row = board.insertRow();
+				for (let j = 0; j < COLS; j++) {
+					const cell = row.insertCell();
+					cell.textContent = oldState[i] && oldState[i][j] ? oldState[i][j] : 'E';
+					cell.style.background = \`var(--\${cell.textContent.toLowerCase()})\`;
 
-      board.innerHTML = '';
-      for (let i = 0; i < ROWS; i++) {
-        const row = board.insertRow();
-        for (let j = 0; j < COLS; j++) {
-          const cell = row.insertCell();
-          cell.textContent = oldState[i] && oldState[i][j] ? oldState[i][j] : 'E';
-          cell.style.background = \`var(--\${cell.textContent.toLowerCase()})\`;
+					cell.addEventListener('mousedown', () => {
+						isDrawing = true;
+						updateCell(cell);
+					});
 
-          cell.addEventListener('mousedown', () => {
-            isDrawing = true;
-            updateCell(cell);
-          });
+					cell.addEventListener('mouseover', () => {
+						if (isDrawing) {
+							updateCell(cell, false);
+						}
+					});
 
-          cell.addEventListener('mouseover', () => {
-            if (isDrawing) {
-              updateCell(cell);
-            }
-          });
+					cell.addEventListener('touchstart', (e) => {
+						e.preventDefault();
+						isDrawing = true;
+						updateCell(cell);
+					});
 
-          cell.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            isDrawing = true;
-            updateCell(cell);
-          });
+					cell.addEventListener('touchmove', (e) => {
+						e.preventDefault();
+						if (isDrawing) {
+							const touch = e.touches[0];
+							const target = document.elementFromPoint(touch.clientX, touch.clientY);
+							if (target && target.tagName === 'TD') {
+								updateCell(target, false);
+							}
+						}
+					});
+				}
+			}
+			updateOutput(false);
+		}
 
-          cell.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            if (isDrawing) {
-              const touch = e.touches[0];
-              const target = document.elementFromPoint(touch.clientX, touch.clientY);
-              if (target && target.tagName === 'TD') {
-                updateCell(target);
-              }
-            }
-          });
-        }
-      }
-      updateOutput(false);
-    }
+		document.addEventListener('mouseup', () => {
+			isDrawing = false;
+			currentDragPiece = null;
+			isDragDeleting = false;
+		});
 
-    document.addEventListener('mouseup', () => {
-      isDrawing = false;
-    });
+		document.addEventListener('touchend', () => {
+			isDrawing = false;
+			currentDragPiece = null;
+			isDragDeleting = false;
+		});
 
-    document.addEventListener('touchend', () => {
-      isDrawing = false;
-    });
+		board.addEventListener('touchmove', (e) => {
+			if (isDrawing) {
+				e.preventDefault();
+			}
+		}, { passive: false });
 
-    board.addEventListener('touchmove', (e) => {
-      if (isDrawing) {
-        e.preventDefault();
-      }
-    }, { passive: false });
+		function handleResize() {
+			saveState();
+			const newRows = Math.max(1, parseInt(rowsInput.value) || 4);
+			const newCols = Math.max(1, parseInt(colsInput.value) || 4);
 
-    function handleResize() {
-      saveState();
-      const newRows = Math.max(1, parseInt(rowsInput.value) || 4);
-      const newCols = Math.max(1, parseInt(colsInput.value) || 4);
+			if (newRows !== ROWS || newCols !== COLS) {
+				ROWS = newRows;
+				COLS = newCols;
+				initializeBoard();
+			}
+		}
 
-      if (newRows !== ROWS || newCols !== COLS) {
-        ROWS = newRows;
-        COLS = newCols;
-        initializeBoard();
-      }
-    }
+		rowsInput.addEventListener('keyup', handleResize);
+		rowsInput.addEventListener('change', handleResize);
+		colsInput.addEventListener('keyup', handleResize);
+		colsInput.addEventListener('change', handleResize);
 
-    rowsInput.addEventListener('keyup', handleResize);
-    colsInput.addEventListener('keyup', handleResize);
-    rowsInput.addEventListener('blur', handleResize);
-    colsInput.addEventListener('blur', handleResize);
-    rowsInput.addEventListener('change', handleResize);
-    colsInput.addEventListener('change', handleResize);
+		function scrollResize(e, input, min = 0, step = 1) {
+			e.preventDefault();
+			const delta = e.deltaY < 0 ? step : -step;
+			input.value = Math.max(min, parseInt(input.value) + delta).toString();
+			if (input === delay) {
+				updatePreview();
+			} else {
+				handleResize();
+			}
+		}
 
-    rowsInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.target.blur();
-      }
-    });
+		rowsInput.addEventListener('wheel', (e) => scrollResize(e, rowsInput, 1));
+		colsInput.addEventListener('wheel', (e) => scrollResize(e, colsInput, 1));
+		delay.addEventListener('wheel', (e) => scrollResize(e, delay, 0, 49));
 
-    colsInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.target.blur();
-      }
-    });
+		initializeBoard();
 
-    initializeBoard();
+		document.querySelectorAll('.piece-selector span').forEach(span => {
+			span.onclick = () => {
+				document.querySelector('.piece-selector .selected').classList.remove('selected');
+				span.classList.add('selected');
+				selectedPiece = span.dataset.piece;
+			}
+		});
 
-    document.querySelectorAll('.piece-selector span').forEach(span => {
-      span.onclick = () => {
-        document.querySelector('.piece-selector .selected').classList.remove('selected');
-        span.classList.add('selected');
-        selectedPiece = span.dataset.piece;
-      }
-    });
+		function updateCell(cell, force = true) {
+			saveState();
+			if (force) {
+				// Initial click
+				if (cell.textContent === selectedPiece) {
+					// Start deleting if clicking our piece
+					cell.textContent = 'E';
+					cell.style.background = 'var(--e)';
+					currentDragPiece = null;
+					isDragDeleting = true;
+				} else {
+					// Start placing if clicking empty or different piece
+					cell.textContent = selectedPiece;
+					cell.style.background = \`var(--\${selectedPiece.toLowerCase()})\`;
+					currentDragPiece = selectedPiece;
+					isDragDeleting = false;
+				}
+			} else if (isDragDeleting) {
+				// During delete drag - only remove our selected piece
+				if (cell.textContent === selectedPiece) {
+					cell.textContent = 'E';
+					cell.style.background = 'var(--e)';
+				}
+			} else if (currentDragPiece) {
+				// During place drag - place on any cell except where same piece already exists
+				if (cell.textContent !== currentDragPiece) {
+					cell.textContent = currentDragPiece;
+					cell.style.background = \`var(--\${currentDragPiece.toLowerCase()})\`;
+				}
+			}
+			updateOutput();
+		}
 
-    function updateCell(cell) {
-      saveState();
-      if (cell.textContent === selectedPiece) {
-        cell.textContent = 'E';
-        cell.style.background = 'var(--e)';
-      } else {
-        cell.textContent = selectedPiece;
-        cell.style.background = \`var(--\${selectedPiece.toLowerCase()})\`;
-      }
-      updateOutput();
-    }
+		function clearBoard() {
+			saveState();
+			document.querySelectorAll('td').forEach(cell => {
+				cell.textContent = 'E';
+				cell.style.background = 'var(--e)';
+			});
+			updateOutput();
+		}
 
-    function clearBoard() {
-      saveState();
-      document.querySelectorAll('td').forEach(cell => {
-        cell.textContent = 'E';
-        cell.style.background = 'var(--e)';
-      });
-      updateOutput();
-    }
+		function updateOutput(update = true) {
+			const grid = [];
+			for (let i = 0; i < ROWS; i++) {
+				const row = [];
+				for (let j = 0; j < COLS; j++) {
+					row.push(board.rows[i].cells[j].textContent);
+				}
+				let optimizedRow = '';
+				let count = 1;
+				for (let k = 0; k < row.length; k++) {
+					if (k < row.length - 1 && row[k] === row[k + 1]) {
+						count++;
+					} else {
+						optimizedRow += count > 1 ? row[k] + count : row[k];
+						count = 1;
+					}
+				}
+				grid.push(optimizedRow);
+			}
+			const gridString = grid.join('|');
+			pages[currentPage] = gridString;
+			// console.log(update);
+			if (update) {
+				output.value = pages.join(';');
+			}
+			updatePreview();
+		}
 
-    function updateOutput(update = true) {
-      const grid = [];
-      for (let i = 0; i < ROWS; i++) {
-        const row = [];
-        for (let j = 0; j < COLS; j++) {
-          row.push(board.rows[i].cells[j].textContent);
-        }
-        let optimizedRow = '';
-        let count = 1;
-        for (let k = 0; k < row.length; k++) {
-          if (k < row.length - 1 && row[k] === row[k + 1]) {
-            count++;
-          } else {
-            optimizedRow += count > 1 ? row[k] + count : row[k];
-            count = 1;
-          }
-        }
-        grid.push(optimizedRow);
-      }
-      const gridString = grid.join('|');
-      pages[currentPage] = gridString;
-      // console.log(update);
-      if (update) {
-        output.value = pages.join(';');
-      }
-      updatePreview();
-    }
-
-    function updatePreview() {
-      const delayMs = parseInt(delay.value) || 500;
-      const showClears = document.getElementById('clear').checked;
-      const shouldLoop = document.getElementById('loop').checked;
-      preview.src = \`/render.gif?grid=\${pages.join(';')}&delay=\${delayMs}&clear=\${showClears}&loop=\${shouldLoop}\`;
-      document.getElementById('pageInfo').textContent = \`Page \${currentPage + 1}/\${pages.length}\`;
-      document.getElementById('prevPage').disabled = currentPage === 0;
-      document.getElementById('nextPage').disabled = currentPage === pages.length - 1;
+		function updatePreview() {
+			const delayMs = parseInt(delay.value) || 500;
+			const showClears = document.getElementById('clear').checked;
+			const shouldLoop = document.getElementById('loop').checked;
+			preview.src = \`/render.gif?grid=\${pages.join(';')}&delay=\${delayMs}&clear=\${showClears}&loop=\${shouldLoop}\`;
+			document.getElementById('pageInfo').textContent = \`Page \${currentPage + 1}/\${pages.length}\`;
+			document.getElementById('prevPage').disabled = currentPage === 0;
+			document.getElementById('nextPage').disabled = currentPage === pages.length - 1;
 			document.getElementById('removePage').disabled = pages.length <= 1;
-    }
+		}
 
-      function expandString(input) {
-	      const regex = /(?:\\[(\\w+)\\]|(\\w))(\\d*)/g;
-        const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
-        // console.log(i);
-        // console.log(input, i);
-        if (input === i) {
-          return i;
-        }
+		function expandString(input) {
+			const regex = /(?:\\[(\\w+)\\]|(\\w))(\\d*)/g;
+			const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
+			// console.log(i);
+			// console.log(input, i);
+			if (input === i) {
+				return i;
+			}
 
-        return expandString(i);
-      }
-        // console.log(expandString('E2'));
+			return expandString(i);
+		}
+		// console.log(expandString('E2'));
 
-    function importPage(update = true) {
-      console.log(1);
-      const currentGrid = pages[currentPage] || 'E'.repeat(COLS).repeat(ROWS);
-      const rows = currentGrid.split('|').map(x=>expandString(x));
-      console.log("rows", rows);
+		function importPage(update = true) {
+			console.log(1);
+			const currentGrid = pages[currentPage] || 'E'.repeat(COLS).repeat(ROWS);
+			const rows = currentGrid.split('|').map(x=>expandString(x));
+			console.log("rows", rows);
 
-      const prevRows = ROWS;
-      const prevCols = COLS;
+			const prevRows = ROWS;
+			const prevCols = COLS;
 
-      ROWS = rows.length || prevRows;
-      COLS = Math.max(...rows.map(r => {
-        let len = 0;
-        for (let i = 0; i < r.length; i++) {
-          const num = parseInt(r[i + 1]);
-          if (!isNaN(num)) {
-            len += num - 1;
-            i++;
-          }
-          len++;
-        }
-        return len;
-      })) || prevCols;
+			ROWS = rows.length || prevRows;
+			COLS = Math.max(...rows.map(r => {
+				let len = 0;
+				for (let i = 0; i < r.length; i++) {
+					const num = parseInt(r[i + 1]);
+					if (!isNaN(num)) {
+						len += num - 1;
+						i++;
+					}
+					len++;
+				}
+				return len;
+			})) || prevCols;
 
-      rowsInput.value = ROWS;
-      colsInput.value = COLS;
-      initializeBoard();
+			rowsInput.value = ROWS;
+			colsInput.value = COLS;
+			initializeBoard();
 
-      document.querySelectorAll('td').forEach(cell => {
-        cell.textContent = 'E';
-        cell.style.background = 'var(--e)';
-      });
+			document.querySelectorAll('td').forEach(cell => {
+				cell.textContent = 'E';
+				cell.style.background = 'var(--e)';
+			});
 
-      rows.forEach((row, i) => {
-        let col = 0;
-        for (let j = 0; j < row.length; j++) {
-          if (i >= board.rows.length || col >= board.rows[i].cells.length) continue;
+			rows.forEach((row, i) => {
+				let col = 0;
+				for (let j = 0; j < row.length; j++) {
+					if (i >= board.rows.length || col >= board.rows[i].cells.length) continue;
 
-          const cell = board.rows[i].cells[col];
-          const char = row[j].toUpperCase();
-          const num = parseInt(row[j + 1]);
+					const cell = board.rows[i].cells[col];
+					const char = row[j].toUpperCase();
+					const num = parseInt(row[j + 1]);
 
-          if (!isNaN(num)) {
-            for (let k = 0; k < num && (col + k) < board.rows[i].cells.length; k++) {
-              board.rows[i].cells[col + k].textContent = char;
-              board.rows[i].cells[col + k].style.background = \`var(--\${char.toLowerCase()})\`;
-            }
-            col += num;
-            j++;
-          } else if ('IJLOSZGTE'.includes(char)) {
-            cell.textContent = char;
-            cell.style.background = \`var(--\${char.toLowerCase()})\`;
-            col++;
-          }
-        }
-      });
-      
-      updateOutput(update);
-    }
+					if (!isNaN(num)) {
+						for (let k = 0; k < num && (col + k) < board.rows[i].cells.length; k++) {
+							board.rows[i].cells[col + k].textContent = char;
+							board.rows[i].cells[col + k].style.background = \`var(--\${char.toLowerCase()})\`;
+						}
+						col += num;
+						j++;
+					} else if ('IJLOSZGTE'.includes(char)) {
+						cell.textContent = char;
+						cell.style.background = \`var(--\${char.toLowerCase()})\`;
+						col++;
+					}
+				}
+			});
 
-    document.getElementById('prevPage').onclick = () => {
-      if (currentPage > 0) {
-        currentPage--;
-        importPage();
-      }
-    };
+			updateOutput(update);
+		}
 
-    function createEmptyBoard() {
-      const emptyRows = [];
-      for (let i = 0; i < ROWS; i++) {
-        emptyRows.push('E'.repeat(COLS));
-      }
-      return emptyRows.join('|');
-    }
+		document.getElementById('prevPage').onclick = () => {
+			if (currentPage > 0) {
+				currentPage--;
+				importPage();
+			}
+		};
 
-    document.getElementById('nextPage').onclick = () => {
-      if (currentPage !== pages.length - 1) {
-        currentPage++;
-        importPage();
-      }
-    };
+		function createEmptyBoard() {
+			const emptyRows = [];
+			for (let i = 0; i < ROWS; i++) {
+				emptyRows.push('E'.repeat(COLS));
+			}
+			return emptyRows.join('|');
+		}
 
-    document.getElementById('newPage').onclick = () => {
-      currentPage = pages.length - 1;
-      importPage();
-      // console.log(pages);
-      pages.push(pages[currentPage]);
-      currentPage++;
-      importPage();
-    };
+		document.getElementById('nextPage').onclick = () => {
+			if (currentPage !== pages.length - 1) {
+				currentPage++;
+				importPage();
+			}
+		};
 
-    function removePage() {
-      if (pages.length > 1) {
-        pages.splice(currentPage, 1);
-        currentPage = Math.max(0, currentPage - 1);
-        importPage();
-      }
-    }
+		document.getElementById('newPage').onclick = () => {
+			currentPage = pages.length - 1;
+			importPage();
+			// console.log(pages);
+			pages.push(pages[currentPage]);
+			currentPage++;
+			importPage();
+		};
 
-    function importText(update = true) {
-      saveState();
-      const text = expandString(output.value);
-      pages = text.split(';');
-      currentPage = 0;
-      // console.log(pages);
-      importPage(update);
-    }
+		function removePage() {
+			if (pages.length > 1) {
+				pages.splice(currentPage, 1);
+				currentPage = Math.max(0, currentPage - 1);
+				importPage();
+			}
+		}
 
-    output.addEventListener('keyup', () => {
-      importText(false);
-    });
+		function importText(update = true) {
+			saveState();
+			const text = expandString(output.value);
+			pages = text.split(';');
+			currentPage = 0;
+			// console.log(pages);
+			importPage(update);
+		}
 
-    function copyOutput() {
-      output.select();
-      document.execCommand('copy');
-    }
+		output.addEventListener('keyup', () => {
+			importText(false);
+		});
 
-    function pasteOutput() {
-      output.select();
-      document.execCommand('paste');
-    }
+		function copyOutput() {
+			output.select();
+			document.execCommand('copy');
+		}
 
-    async function copyFumen() {
-      fetch(\`/convert?data=\${output.value}\`).then(r=>r.text()).then(r=>navigator.clipboard.writeText(r));
-    }
+		function pasteOutput() {
+			output.select();
+			document.execCommand('paste');
+		}
 
-    function copyPreviewUrl() {
-      const text = preview.src;
-      navigator.clipboard.writeText(text);
-    }
+		async function copyFumen() {
+			fetch(\`/convert?data=\${output.value}\`).then(r=>r.text()).then(r=>navigator.clipboard.writeText(r));
+		}
 
-    function importFumen() {
-      saveState();
-      const fumenText = document.getElementById('fumen').value;
-      if (!fumenText) return;
+		function copyPreviewUrl() {
+			const text = preview.src;
+			navigator.clipboard.writeText(text);
+		}
 
-      fetch(\`/convert?data=\${encodeURIComponent(fumenText)}\`)
-        .then(r => r.text())
-        .then(grid => {
-          pages = grid.split(';');
-          currentPage = 0;
-          importPage();
-        });
-    }
+		function importFumen() {
+			saveState();
+			const fumenText = document.getElementById('fumen').value;
+			if (!fumenText) return;
 
-    delay.addEventListener('input', updatePreview);
+			fetch(\`/convert?data=\${encodeURIComponent(fumenText)}\`)
+				.then(r => r.text())
+				.then(grid => {
+					pages = grid.split(';');
+					currentPage = 0;
+					importPage();
+				});
+		}
 
-    document.getElementById('clear').addEventListener('change', updatePreview);
-    document.getElementById('loop').addEventListener('change', updatePreview);
+		delay.addEventListener('input', updatePreview);
 
-    updateOutput(false);
+		delay.addEventListener('wheel', (e) => scrollResize(e, delay, 50));
+
+		document.getElementById('clear').addEventListener('change', updatePreview);
+		document.getElementById('loop').addEventListener('change', updatePreview);
+
+		updateOutput(false);
   </script>
 </body>
+
 </html>`;
