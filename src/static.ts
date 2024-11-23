@@ -667,7 +667,7 @@ export const board_editor = `<html>
 			colsInput.value = COLS;
 			importPage();
 		}
-
+    
 		function redo() {
 			if (redoStack.length === 0) return;
 			const state = JSON.parse(redoStack.pop());
