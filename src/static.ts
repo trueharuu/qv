@@ -795,6 +795,15 @@ export const board_editor = `<html>
     colsInput.addEventListener('keyup', handleResize);
     colsInput.addEventListener('change', handleResize);
 
+    function scrollResize(e, input) {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 1 : -1;
+      input.value = Math.max(1, parseInt(input.value) + delta).toString();
+      handleResize();
+    }
+
+    rowsInput.addEventListener('wheel', (e) => scrollResize(e, rowsInput));
+    colsInput.addEventListener('wheel', (e) => scrollResize(e, colsInput));
     initializeBoard();
 
     document.querySelectorAll('.piece-selector span').forEach(span => {
