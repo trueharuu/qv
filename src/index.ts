@@ -6,6 +6,8 @@ import { listren, listren_specific } from './listren';
 import { CSS } from './data';
 import { combo_finder, home, pc_finder, renderguide } from './static';
 import { prerender_combo, prerender_pc, prerender_pc_list } from './prerender';
+import { decoder, encoder, Field } from 'tetris-fumen';
+import { fumenToGrid, gridToFumen } from './fumen';
 export default {
 	async fetch(request) {
 		const u = new URL(request.url);
@@ -28,6 +30,30 @@ export default {
 			const b = await render_grid(p, true, lc, scale, mir, delay, lp);
 
 			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
+		} else if (path === '/fumen.gif' || path === '/fumen.png' || path === '/fumen') {
+			const z = u.searchParams.get('data') || '';
+
+			const p = fumenToGrid(z);
+			console.log(p);
+			const scale = Number(u.searchParams.get('scale') || '4');
+			const lc = u.searchParams.get('clear') != 'false' && u.searchParams.get('lcs') != 'false';
+			const mir = u.searchParams.get('mirror') == 'true';
+			const lp = u.searchParams.get('loop') !== 'false';
+			const delay = Number(u.searchParams.get('delay') || '500');
+
+			const is_many_frames = p.includes(';');
+
+			const b = await render_grid(p, true, lc, scale, mir, delay, lp);
+
+			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
+		} else if (path === '/convert') {
+			const p = u.searchParams.get('data') || '';
+			const is_grid = !/^v\d+?@/.test(p);
+			if (is_grid) {
+				return new Response(gridToFumen(p), { headers: { 'Content-Type': 'text/plain' } });
+			} else {
+				return new Response(fumenToGrid(p), { headers: { 'Content-Type': 'text/plain' } });
+			}
 		} else if (path.startsWith('/list/ren')) {
 			const parts = path.slice('/list/ren/'.length).split('/');
 			console.log(parts);

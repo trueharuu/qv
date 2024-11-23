@@ -33,6 +33,7 @@ export async function render_grid(
 	if (f.length > 1) {
 		const wi = Math.max(...f.map((ng) => scale * Math.max(ng[0].length * BW + 2 * PADDING, 0)));
 		const hi = Math.max(...f.map((ng) => scale * (ng.length * BH + 2 * PADDING + HL)));
+		const mh = Math.max(...f.map((x) => x.length));
 		const gif = new GIF(wi, hi);
 
 		gif.setRepeat(loop ? 0 : -1);
@@ -45,9 +46,13 @@ export async function render_grid(
 			console.log(chunk);
 			chunks.push(chunk);
 		});
-		for (const ng of f) {
+		for (let ng of f) {
 			// const width = scale * Math.max(ng[0].length * BW + 2 * PADDING, 0);
 			// const height = scale * (ng.length * BH + 2 * PADDING + HL);
+			console.log(ng.length, mh);
+			while (ng.length < mh) {
+				ng = [[], ...ng];
+			}
 			const buf = new Array(4 * wi * hi).fill(0);
 			render_frame(ng, buf, wi, lcs, spec, scale, setPixelAt);
 			gif.addFrame(buf);
@@ -82,7 +87,8 @@ export function render_frame(
 		const r = ng[i];
 		for (let j = 0; j < r.length; j++) {
 			const c = r[j];
-			const has_air = (i - 1 >= 0 ? ng[i - 1][j] : Piece.E) == Piece.E;
+			const has_air = ng[i - 1]?.[j] === Piece.E || ng[i-1]?.[j] === undefined;
+			// console.log(ng[i][j], ng[i - 1]?.[j]);
 			const is_line_clear = !r.includes(Piece.E);
 			const p = c;
 			const pix = piece_color(p);
