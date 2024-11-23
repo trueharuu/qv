@@ -25,13 +25,15 @@ export async function render_grid(
 	const t = g.split(';');
 	const f = t.map((g) => g.split('|').map((x) => [...x])).map((grid) => (mir ? mirror_grid(preprocess_grid(grid)) : preprocess_grid(grid)));
 
-	const id = `${f.map((ng) => ng.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}`;
+	const id = `${f.map((ng) => ng.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}@${loop}@${delay}`;
 	if (rmemo.has(id)) {
 		return rmemo.get(id)!;
 	}
 
 	if (f.length > 1) {
 		const wi = Math.max(...f.map((ng) => scale * Math.max(ng[0].length * BW + 2 * PADDING, 0)));
+		const mw = Math.max(...f.map((ng) => Math.max(...ng.map((x) => x.length))));
+		// console.log('mw', mw);
 		const hi = Math.max(...f.map((ng) => scale * (ng.length * BH + 2 * PADDING + HL)));
 		const mh = Math.max(...f.map((x) => x.length));
 		const gif = new GIF(wi, hi);
@@ -43,18 +45,18 @@ export async function render_grid(
 		const chunks: Buffer[] = [];
 
 		gif.on('data', (chunk) => {
-			console.log(chunk);
+			// console.log(chunk);
 			chunks.push(chunk);
 		});
 		for (let ng of f) {
 			// const width = scale * Math.max(ng[0].length * BW + 2 * PADDING, 0);
 			// const height = scale * (ng.length * BH + 2 * PADDING + HL);
-			console.log(ng.length, mh);
+			// console.log(ng.length, mh);
 			while (ng.length < mh) {
 				ng = [[], ...ng];
 			}
 			const buf = new Array(4 * wi * hi).fill(0);
-			render_frame(ng, buf, wi, lcs, spec, scale, setPixelAt);
+			render_frame(ng, buf, wi, lcs, spec, scale, setPixelAt, mw);
 			gif.addFrame(buf);
 		}
 		gif.finish();
@@ -81,15 +83,18 @@ export function render_frame(
 	lcs: boolean,
 	spec: boolean,
 	scale: number,
-	setPixelAt: (arg0: any, arg1: number, arg2: number, arg3: number, arg4: number, arg5: number) => void
+	setPixelAt: (arg0: any, arg1: number, arg2: number, arg3: number, arg4: number, arg5: number) => void,
+	maxwidth: number = width
 ) {
 	for (let i = 0; i < ng.length; i++) {
 		const r = ng[i];
 		for (let j = 0; j < r.length; j++) {
 			const c = r[j];
-			const has_air = ng[i - 1]?.[j] === Piece.E || ng[i-1]?.[j] === undefined;
+			const has_air = ng[i - 1]?.[j] === Piece.E || ng[i - 1]?.[j] === undefined;
 			// console.log(ng[i][j], ng[i - 1]?.[j]);
-			const is_line_clear = !r.includes(Piece.E);
+			// console.log('len', r);
+
+			const is_line_clear = !r.includes(Piece.E) && r.length == maxwidth;
 			const p = c;
 			const pix = piece_color(p);
 			const col = lcs && is_line_clear ? applyFilters(pix, 1.2, 0.8) : pix;

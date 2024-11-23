@@ -34,7 +34,7 @@ export default {
 			const z = u.searchParams.get('data') || '';
 
 			const p = fumenToGrid(z);
-			console.log(p);
+			// console.log(p);
 			const scale = Number(u.searchParams.get('scale') || '4');
 			const lc = u.searchParams.get('clear') != 'false' && u.searchParams.get('lcs') != 'false';
 			const mir = u.searchParams.get('mirror') == 'true';
@@ -56,7 +56,7 @@ export default {
 			}
 		} else if (path.startsWith('/list/ren')) {
 			const parts = path.slice('/list/ren/'.length).split('/');
-			console.log(parts);
+			// console.log(parts);
 
 			if (parts.length === 1) {
 				return new Response(listren(+parts[0]), { headers: { 'Content-Type': 'text/html' } });

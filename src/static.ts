@@ -25,7 +25,7 @@ export const combo_finder = `<html>
       }
 
       async function go(t) {
-        console.log(t);
+        // console.log(t);
         await search(rx.value, px.value, fx.value, hx.value);
       }
 

@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 
 export function resp() {
   const resp: Record<string, Array<Pattern>> = {};
-  console.log(1);
+  // console.log(1);
   for (const line of DATA.split('\n')) {
     const [_, r, id, grid, conts] = (/(\d+):(\w+)=(.+?)#(.*)/.exec(line)
       || []) as RegExpExecArray;
