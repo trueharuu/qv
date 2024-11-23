@@ -116,24 +116,30 @@ export function render_frame(
 	}
 }
 
+export function expandString(input: string): string {
+	let result = '';
+	const regex = /([a-zA-Z])(\d+)/g;
+	let match;
+
+	while ((match = regex.exec(input)) !== null) {
+		const [_, char, count] = match;
+		result += char.repeat(parseInt(count, 10));
+	}
+
+	return result;
+}
+
 export function preprocess_grid(grid: Array<Array<string>>): Grid {
+	const grid2 = expandString(grid.map((x) => x.join('')).join('|'))
+		.split('|')
+		.map((x) => x.split(''));
 	const ng: Array<Array<string>> = [];
-	for (const i of grid) {
+	for (const i of grid2) {
 		const nr = [];
 		for (let j = 0; j < i.length; j++) {
 			const c = i[j];
-			const t = Number(c);
-			if (!Number.isNaN(t)) {
-				if (t === 0) {
-					continue;
-				}
 
-				for (let v = 0; v < t - 1; v++) {
-					nr.push(i[j - 1]);
-				}
-			} else {
-				nr.push(c);
-			}
+			nr.push(c);
 		}
 
 		ng.push(nr);

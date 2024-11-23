@@ -360,7 +360,7 @@ export const board_editor = `<html>
       border-collapse: collapse;
       margin: 0;
       border-spacing: 0;
-			color: rgba(255, 255, 255, 0.5);
+			color: rgba(255, 255, 255, 0.2);
       table-layout: fixed; /* Keep cells as squares */
     }
 
@@ -553,6 +553,7 @@ export const board_editor = `<html>
         <button id="prevPage">&lt;</button>
         <span id="pageInfo" class="meta">Page 1/1</span>
         <button id="nextPage">&gt;</button>
+        <button id="newPage">&plus;</button>
         <button id="removePage" onclick="removePage()">Remove Page</button>
       </div>
 
@@ -570,8 +571,8 @@ export const board_editor = `<html>
         </div>
         <div>
           <label>Size: </label>
-          <input type="number" id="rows" value="4" min="0" style="width:50px"> &times;
-          <input type="number" id="cols" value="4" min="0" style="width:50px">
+          <input type="number" id="cols" value="10" min="0" style="width:50px"> &times;
+          <input type="number" id="rows" value="4" min="0" style="width:50px">
           <button onclick="clearBoard()">Clear</button>
         </div>
       </div>
@@ -585,6 +586,7 @@ export const board_editor = `<html>
         <textarea id="output" spellcheck="false"></textarea>
         <div style="display:flex;gap:10px;margin:10px 0">
           <button onclick="copyOutput()">Copy Text</button>
+          <button onclick="copyFumen()">Copy Fumen</button>
           <button onclick="importText()">Import Text</button>
         </div>
         <div class="fumen-input">
@@ -620,12 +622,12 @@ export const board_editor = `<html>
   </div>
 
   <script>
-    let ROWS = 4;
-    let COLS = 4;
-    let isDrawing = false;
-    const preview = document.getElementById('preview');
-    const rowsInput = document.getElementById('rows');
-    const colsInput = document.getElementById('cols');
+  let isDrawing = false;
+  const preview = document.getElementById('preview');
+  const rowsInput = document.getElementById('rows');
+  const colsInput = document.getElementById('cols');
+    let ROWS = rowsInput.value || 4;
+    let COLS = colsInput.value || 10;
     const delay = document.getElementById('delay');
     let selectedPiece = 'E';
     let currentPage = 0;
@@ -703,6 +705,10 @@ export const board_editor = `<html>
           pieceElement.classList.add('selected');
           selectedPiece = key;
         }
+      } else if (e.ctrlKey && key === 'C') {
+        copyOutput();
+      } else if (e.ctrlKey && key === 'V') {
+        pasteOutput();
       }
     });
 
@@ -783,10 +789,10 @@ export const board_editor = `<html>
       }
     }
 
-    rowsInput.addEventListener('change', handleResize);
-    colsInput.addEventListener('change', handleResize);
-    rowsInput.addEventListener('blur', handleResize);
-    colsInput.addEventListener('blur', handleResize);
+    rowsInput.addEventListener('keyup', handleResize);
+    colsInput.addEventListener('keyup', handleResize);
+    // rowsInput.addEventListener('blur', handleResize);
+    // colsInput.addEventListener('blur', handleResize);
 
     rowsInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -863,11 +869,24 @@ export const board_editor = `<html>
       preview.src = \`/render.gif?grid=\${pages.join(';')}&delay=\${delayMs}&clear=\${showClears}&loop=\${shouldLoop}\`;
       document.getElementById('pageInfo').textContent = \`Page \${currentPage + 1}/\${pages.length}\`;
       document.getElementById('prevPage').disabled = currentPage === 0;
-      document.getElementById('nextPage').disabled = false;
+      document.getElementById('nextPage').disabled = currentPage === pages.length - 1;
 			document.getElementById('removePage').disabled = pages.length <= 1;
     }
 
     function importPage() {
+      function expandString(input: string): string {
+	      let result = '';
+	      const regex = /([a-zA-Z])(\d+)/g;
+	      let match;
+
+	      while ((match = regex.exec(input)) !== null) {
+		      const [_, char, count] = match;
+		      result += char.repeat(parseInt(count, 10));
+      	}
+
+	      return result;
+      }
+
       const currentGrid = pages[currentPage] || 'E'.repeat(COLS).repeat(ROWS);
       const rows = currentGrid.split('|');
 
@@ -939,10 +958,17 @@ export const board_editor = `<html>
     }
 
     document.getElementById('nextPage').onclick = () => {
-      if (currentPage === pages.length - 1) {
-        updateOutput();
-        pages.push(createEmptyBoard());
+      if (currentPage !== pages.length - 1) {
+        currentPage++;
+        importPage();
       }
+    };
+
+    document.getElementById('newPage').onclick = () => {
+      currentPage = pages.length - 1;
+      importPage();
+      console.log(pages);
+      pages.push(pages[currentPage]);
       currentPage++;
       importPage();
     };
@@ -973,6 +999,15 @@ export const board_editor = `<html>
     function copyOutput() {
       output.select();
       document.execCommand('copy');
+    }
+
+    function pasteOutput() {
+      output.select();
+      document.execCommand('paste');
+    }
+
+    async function copyFumen() {
+      fetch(\`/convert?data=\${output.value}\`).then(r=>r.text()).then(r=>navigator.clipboard.writeText(r));
     }
 
     function copyPreviewUrl() {
