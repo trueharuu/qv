@@ -6,7 +6,7 @@ export function gridToFumen(grid: string): string {
 		grid.split(';').map((x) => {
 			return {
 				field: Field.create(
-					preprocess_grid(grid.split('|').map((y) => y.split('')))
+					preprocess_grid(x.split('|').map((y) => y.split('')))
 						.map((x) => x.join(''))
 						.join('|')
 						.replaceAll('E', '_')
@@ -20,7 +20,7 @@ export function gridToFumen(grid: string): string {
 	);
 }
 
-export function fumenToGrid(z: string): string {
+export function fumenToGrid(z: string, compress: boolean = true): string {
 	return decoder
 		.decode(z)
 		.map((x) => {
@@ -32,7 +32,7 @@ export function fumenToGrid(z: string): string {
 						.replaceAll('_', 'E')
 						.replaceAll('X', 'G')
 						.replace(/E*?$/g, '')
-						.replace(/(.)\1+/g, (match, char) => `${char}${match.length}`)
+						.replace(/(.)\1+/g, (match, char) => compress ? `${char}${match.length}` : char.repeat(match.length))
 				)
 				.join('|');
 		})

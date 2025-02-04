@@ -4,7 +4,7 @@ import { Readable, Writable, Transform } from 'stream';
 import { render_grid } from './render';
 import { listren, listren_specific } from './listren';
 import { CSS } from './data';
-import { board_editor, combo_finder, home, pc_finder, renderguide } from './static';
+import { board_editor, combo_finder, home, pc_finder, renderguide, view } from './static';
 import { prerender_combo, prerender_pc, prerender_pc_list } from './prerender';
 import { decoder, encoder, Field } from 'tetris-fumen';
 import { fumenToGrid, gridToFumen } from './fumen';
@@ -19,7 +19,7 @@ export default {
 			return new Response(renderguide, { headers: { 'Content-Type': 'text/html' } });
 		} else if (path === '/render.gif' || path === '/render.png' || path === '/render') {
 			const p = u.searchParams.get('grid') || '';
-			const scale = Number(u.searchParams.get('scale') || '4');
+			const scale = Number(u.searchParams.get('scale') || '5');
 			const lc = u.searchParams.get('clear') == 'true' || u.searchParams.get('lcs') == 'true';
 			const mir = u.searchParams.get('mirror') == 'true';
 			const lp = u.searchParams.get('loop') !== 'false';
@@ -35,7 +35,7 @@ export default {
 
 			const p = fumenToGrid(z);
 			// console.log(p);
-			const scale = Number(u.searchParams.get('scale') || '4');
+			const scale = Number(u.searchParams.get('scale') || '5');
 			const lc = u.searchParams.get('clear') != 'false' && u.searchParams.get('lcs') != 'false';
 			const mir = u.searchParams.get('mirror') == 'true';
 			const lp = u.searchParams.get('loop') !== 'false';
@@ -48,11 +48,24 @@ export default {
 			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
 		} else if (path === '/convert') {
 			const p = u.searchParams.get('data') || '';
-			const is_grid = !/^v\d+?@/.test(p);
+			const is_grid = !/^[vmd]\d+?@/.test(p);
 			if (is_grid) {
 				return new Response(gridToFumen(p), { headers: { 'Content-Type': 'text/plain' } });
 			} else {
 				return new Response(fumenToGrid(p), { headers: { 'Content-Type': 'text/plain' } });
+			}
+		} else if (path === '/decode') {
+			const p = u.searchParams.get('data') || '';
+			const is_grid = !/^[vmd]\d+?@/.test(p);
+			if (is_grid) {
+				return new Response(JSON.stringify(p.split(';').map((x) => ({ data: x, comment: '' }))), {
+					headers: { 'Content-Type': 'text/json' },
+				});
+			} else {
+				return new Response(
+					JSON.stringify(decoder.decode(p).map((x) => ({ data: fumenToGrid(encoder.encode([x])), comment: x.comment }))),
+					{ headers: { 'Content-Type': 'text/plain' } }
+				);
 			}
 		} else if (path.startsWith('/list/ren')) {
 			const parts = path.slice('/list/ren/'.length).split('/');
@@ -69,8 +82,21 @@ export default {
 			return new Response(CSS, { headers: { 'Content-Type': 'text/css' } });
 		} else if (path === '/tools/combo-finder') {
 			return new Response(combo_finder, { headers: { 'Content-Type': 'text/html' } });
-		} else if (path === '/tools/board-editor') {
-			return new Response(board_editor, { headers: { 'Content-Type': 'text/html' } });
+		} else if (path === '/board' || path === '/edit') {
+			let i = u.search.slice(1);
+			if (/^[vmd]\d+?@/.test(i)) {
+				i = fumenToGrid(i);
+			}
+
+			console.log('path', i);
+			return new Response(board_editor(i), { headers: { 'Content-Type': 'text/html' } });
+		} else if (path === '/view') {
+			let i = u.search.slice(1);
+			if (!/^[vmd]\d+?@/.test(i)) {
+				console.log(i);
+				i = gridToFumen(i);
+			}
+			return new Response(view(decoder.decode(i)), { headers: { 'Content-Type': 'text/html' } });
 		} else if (path.startsWith('/pre-render/combo')) {
 			return new Response(
 				await prerender_combo(

@@ -17,11 +17,12 @@ export async function render_grid(
 	g: string,
 	spec: boolean = true,
 	lcs: boolean = true,
-	scale: number = 4,
+	scale: number = 5,
 	mir: boolean = false,
 	delay: number = 500,
 	loop: boolean = true
 ): Promise<Buffer> {
+	console.log(scale);
 	const t = g.split(';');
 	const f = t.map((g) => g.split('|').map((x) => [...x])).map((grid) => (mir ? mirror_grid(preprocess_grid(grid)) : preprocess_grid(grid)));
 
@@ -41,6 +42,13 @@ export async function render_grid(
 		gif.setRepeat(loop ? 0 : -1);
 		gif.writeHeader();
 		gif.setDelay(delay);
+		// gif.setImagePalette(
+		// 	Object.values(Piece)
+		// 		.filter((x) => typeof x === 'number')
+		// 		.map(piece_color)
+		// 		.map(to_rgba)
+		// 		.flat()
+		// );
 		gif.setTransparent(0x000000);
 		const chunks: Buffer[] = [];
 
@@ -56,20 +64,23 @@ export async function render_grid(
 				ng = [[], ...ng];
 			}
 			const buf = new Array(4 * wi * hi).fill(0);
-			render_frame(ng, buf, wi, lcs, spec, scale, setPixelAt, mw);
+			render_frame(ng, buf, wi, lcs, spec, scale, mw);
 			gif.addFrame(buf);
 		}
+
+		gif.setQuality(1);
 		gif.finish();
 		const gb = Buffer.concat(chunks);
 		rmemo.set(id, gb);
 		return gb;
+		// throw 'todo';
 	} else {
 		const ng = f[0];
 		const img = new PNG({
 			width: scale * Math.max(ng[0].length * BW + 2 * PADDING, 0),
 			height: scale * (ng.length * BH + 2 * PADDING + HL),
 		});
-		render_frame(ng, img.data, img.width, lcs, spec, scale, setPixelAt);
+		render_frame(ng, img.data, img.width, lcs, spec, scale);
 		const buf = PNG.sync.write(img);
 		rmemo.set(id, buf);
 		return buf;
@@ -83,8 +94,7 @@ export function render_frame(
 	lcs: boolean,
 	spec: boolean,
 	scale: number,
-	setPixelAt: (arg0: any, arg1: number, arg2: number, arg3: number, arg4: number, arg5: number) => void,
-	maxwidth: number = width
+	maxwidth: number = Math.max(...ng.map((x) => x.length))
 ) {
 	for (let i = 0; i < ng.length; i++) {
 		const r = ng[i];
@@ -92,23 +102,20 @@ export function render_frame(
 			const c = r[j];
 			const has_air = ng[i - 1]?.[j] === Piece.E || ng[i - 1]?.[j] === undefined;
 			// console.log(ng[i][j], ng[i - 1]?.[j]);
-			// console.log('len', r);
+			// console.log('len', maxwidth);
 
-			const is_line_clear = !r.includes(Piece.E) && r.length == maxwidth;
-			const p = c;
-			const pix = piece_color(p);
-			const col = lcs && is_line_clear ? applyFilters(pix, 1.2, 0.8) : pix;
+			const is_line_clear = !r.includes(Piece.E) && r.length == maxwidth && lcs;
+			let col = is_line_clear ? applyFilters(piece_color(c), 1.2, 0.8) : piece_color(c);
 			for (let pi = i * BW; pi < (i + 1) * BW; pi++) {
 				for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-					setPixelAt(buf, width, pj + PADDING + 1, pi + PADDING, scale, col);
+					setPixelAt(buf, width, pj + PADDING, pi + PADDING, scale, col);
 				}
 			}
 
-			const hl = piece_color_bright(p);
 			if (has_air && spec) {
 				for (let pi = i * BW; pi < i * BW + HL; pi++) {
 					for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-						setPixelAt(buf, width, pj + PADDING + 1, pi + PADDING - HL, scale, hl);
+						setPixelAt(buf, width, pj + PADDING, pi + PADDING - HL, scale, piece_color_bright(c));
 					}
 				}
 			}

@@ -33,7 +33,7 @@ export async function prerender_combo(res: number, pattern: string, queue: strin
 	htm += `<span class=meta>Longest path used <b>${path.length}/${pcnt}</b> pieces</span>`;
 
 	htm += '<h3>Starting Pattern</h3>';
-	htm += `<a href='list/ren/${rs}/${pt}'><div style='display:inline-block; padding-top: 2%; padding-left 2%;'>
+	htm += `<a href='/list/ren/${rs}/${pt}'><div style='display:inline-block; padding-top: 2%; padding-left 2%;'>
   <img src='/render?grid=${to_grid(b.grid)}&lcs=false'><br><span style='padding-left: 12px'><span class=meta>${b.id}</span></div></a>`;
 	htm += '<h3>Path</h3>';
 	for (const [, c, g] of path) {

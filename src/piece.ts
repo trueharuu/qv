@@ -113,6 +113,8 @@ export function piece_color_bright(p: Piece): number {
 	}
 }
 
+
+
 export function parse_grid(t: string): Grid {
 	return t.split('|').map((x) => x.split('').map((y) => piece_from_str(y)));
 }

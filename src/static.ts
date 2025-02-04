@@ -1,3 +1,6 @@
+import { encoder, Pages } from 'tetris-fumen';
+import { fumenToGrid } from './fumen';
+
 export const combo_finder = `<html>
 
 <head>
@@ -8,6 +11,7 @@ export const combo_finder = `<html>
   <meta property="og:url" content="/tools/combo-finder">
   <meta property="og:image" content="/render?grid=j|j3g|gege|g2eg&clear=true">
   <meta property="og:description" content="Finds combo given a board and queue.">
+  <title>qv | combo finder</title>
   <script>
     window.onload = async () => {
 
@@ -78,6 +82,7 @@ export const pc_finder = `<html>
   <meta property="og:url" content="/tools/pc-finder">
   <meta property="og:image" content="/render?grid=z2s2|lz2j|ls2j|l2j2">
   <meta property="og:description" content="Find a 4-wide PC given a board and queue.">
+  <title>qv | pc finder</title>
   <script>
     window.onload = () => {
       void (async () => {
@@ -130,6 +135,7 @@ export const home = `<html>
   <meta property="og:url" content="/">
   <meta property="og:image" content="/render?grid=|g2et|get2|g3t&scale=7">
   <meta property="og:description" content="General resource for things related to 4-wide.">
+  <title>qv</title>
   <style>
     .g {
       display: grid;
@@ -205,7 +211,7 @@ export const home = `<html>
     </div>
     <div class=item>
       <div>
-        <a class=u href='/tools/board-editor'><h2>Board Editor</h2></a>
+        <a class=u href='/board'><h2>Board Editor</h2></a>
         <span class=meta>Visual board editor made by
 					<a href='https://github.com/durocodes' class=u>duro</a>
 				</span>
@@ -230,6 +236,7 @@ export const renderguide = `<html>
   <meta property="og:url" content="/render/guide">
   <meta property="og:image" content="/render?grid=oe2o||oe2o|o4">
   <meta property="og:description" content="Guide for making diagrams with the render tool.">
+  <title>qv | render guide</title>
 
   <style>
     c {
@@ -347,14 +354,16 @@ export const renderguide = `<html>
 
 </html>`;
 
-export const board_editor = `<html>
+export const board_editor = (g: string) => `<html>
 <head>
   <link rel=stylesheet href='../../css'>
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#2c2d30">
   <meta property="og:title" content="qv | board editor">
-  <meta property="og:url" content="/tools/board-editor">
-  <meta property="og:description" content="Visual board editor">
+  <meta property="og:url" content="/edit">
+  <meta property="twitter:image" content="/render.gif?grid=${g}">
+  <meta property="twitter:card" content="summary_large_image">
+  <title>qv | edit</title>
   <style>
     table {
       border-collapse: collapse;
@@ -571,14 +580,22 @@ export const board_editor = `<html>
           <span style="background:var(--d)" data-piece="G">D</span>
         </div>
         <div>
+          <button id="edit-mirror">Mirror</button>
+          <button id="edit-to-gray">To Gray</button>
+          <button id="edit-only-gray">Only Gray</button>
+          <button id="edit-skim">Skim</button>
+          <button id="edit-clear">Clear</button>
+        </div>
+        
+        <div>
           <label>Size: </label>
           <input type="number" id="cols" value="10" min="0" style="width:50px"> &times;
           <input type="number" id="rows" value="4" min="0" style="width:50px">
-          <button onclick="clearBoard()">Clear</button>
         </div>
       </div>
 
       <table id="board"></table>
+      <span><a id="vtotal">[view]</a> <a id="vpage">[view page]</a></span>
     </div>
 
     <div class="preview-panel">
@@ -616,10 +633,13 @@ export const board_editor = `<html>
         <div>
           <img id="preview" style="max-width:100%">
 					<br>
-          <button onclick="copyPreviewUrl()">Copy URL</button>
+          <button onclick="copyPreviewUrl()">Copy Image URL</button>
+          <button onclick="copyPageUrl()">Copy URL</button>
         </div>
       </div>
     </div>
+
+    
   </div>
 
   <script>
@@ -635,6 +655,9 @@ export const board_editor = `<html>
 		let selectedPiece = 'E';
 		let currentPage = 0;
 		let pages = [''];
+    const vtotal = document.getElementById('vtotal');
+    const vpage = document.getElementById('vpage');
+
 
 		const undoStack = [];
 		const redoStack = [];
@@ -701,7 +724,7 @@ export const board_editor = `<html>
 			} else if (e.ctrlKey && key === 'Y') {
 				e.preventDefault();
 				redo();
-			} else if (!e.ctrlKey && 'IJLOSZGTE'.includes(key)) {
+			} else if (!e.ctrlKey && 'IJLOSZGTED'.includes(key)) {
 				const pieceElement = document.querySelector(\`[data-piece="\${key}"]\`);
 				if (pieceElement) {
 					document.querySelector('.piece-selector .selected').classList.remove('selected');
@@ -859,7 +882,7 @@ export const board_editor = `<html>
 			updateOutput();
 		}
 
-		function clearBoard() {
+    document.getElementById('edit-clear').onclick = () => {
 			saveState();
 			document.querySelectorAll('td').forEach(cell => {
 				cell.textContent = 'E';
@@ -867,6 +890,53 @@ export const board_editor = `<html>
 			});
 			updateOutput();
 		}
+
+    document.getElementById('edit-mirror').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      for (let i = 0; i < r.length; i++) {
+        r[i] = r[i].split('').reverse().map(x=>({J:'L',L:'J',Z:'S',S:'Z'})[x] || x).join('');
+      }
+
+      pages[currentPage] = r.join('|');
+      importPage();
+      updateOutput();
+    }
+
+    document.getElementById('edit-to-gray').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      for (let i = 0; i < r.length; i++) {
+        r[i] = r[i].split('').map(x => x === 'E' ? 'E' : 'G').join('');
+      }
+
+      pages[currentPage] = r.join('|');
+      importPage();
+      updateOutput();
+    }
+
+    document.getElementById('edit-only-gray').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      for (let i = 0; i < r.length; i++) {
+        r[i] = r[i].split('').map(x => x === 'G' ? 'G' : 'E').join('');
+      }
+
+      pages[currentPage] = r.join('|');
+      importPage();
+      updateOutput();
+    }
+
+    document.getElementById('edit-skim').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      const removed_lines = r.filter(x => !x.includes('E')).length;
+      const t = [...Array(removed_lines).fill('E'.repeat(r[0].length)), ...r.filter(x => x.includes('E'))]
+
+      pages[currentPage] = t.join('|');
+      importPage();
+      updateOutput();
+    }
 
 		function updateOutput(update = true) {
 			const grid = [];
@@ -892,8 +962,16 @@ export const board_editor = `<html>
 			// console.log(update);
 			if (update) {
 				output.value = pages.join(';');
+        console.log(window.location);
+        const t = window.location.protocol + '//' + window.location.host + window.location.pathname + '?' + output.value;
+        console.log(t);
+        window.history.replaceState(null, '', t);
 			}
-			updatePreview();
+
+      updatePreview();
+      vtotal.href = '/view?' + pages.join(';');
+      vpage.href = '/view?' + gridString;
+      
 		}
 
 		function updatePreview() {
@@ -1050,6 +1128,11 @@ export const board_editor = `<html>
 			navigator.clipboard.writeText(text);
 		}
 
+    function copyPageUrl() {
+			const text = window.location.href;
+			navigator.clipboard.writeText(text);
+		}
+
 		function importFumen() {
 			saveState();
 			const fumenText = document.getElementById('fumen').value;
@@ -1072,7 +1155,128 @@ export const board_editor = `<html>
 		document.getElementById('loop').addEventListener('change', updatePreview);
 
 		updateOutput(false);
+        const predata = window.location.search.slice(1);
+
+    if (predata) {
+      if (/^v\\d+@/.test(predata)) {
+        console.log(predata);
+        document.getElementById('fumen').value = predata;
+        importFumen();
+      } else {
+        output.value = predata;
+        importText(false);
+      }
+    }
   </script>
 </body>
 
 </html>`;
+
+export const view = (f: Pages) => {
+	// let txt = '';
+	// let i = 0;
+	let pgs = f.map(
+		(x) =>
+			[
+				fumenToGrid(encoder.encode([x]), false)
+					.split('|')
+					.map((x) => x.split('')),
+				x.comment,
+			] as const
+	);
+
+
+	return `<html>
+
+<head>
+  <link rel=stylesheet href='../../css'>
+    <meta property="og:type" content="website">
+  <meta name="theme-color" content="#2c2d30">
+  <meta property="og:title" content="qv">
+  <meta property="og:title" content="Render of ${pgs.length} page${pgs.length === 1 ? '' : 's'}">
+  <meta property="og:url" content="/view">
+  <meta property="twitter:image" content="/render.gif?grid=${pgs.map((x) => x[0].map((x) => x.join('')).join('|')).join(';')}">
+  <meta property="twitter:card" content="summary_large_image">
+  <title>qv | view</title>
+  <style>
+    body {
+      margin-left: 2%;
+      margin-right: 2%;
+      margin-top: 2%;
+    }
+    .frame {
+      display: inline-block;
+      background-color: #1e1e1e;
+      margin: 0.5%;
+      padding: 1%;
+      text-align: center;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  Viewing <input id='currently-viewing' style='width:90%' type=text></input><br><br>
+  <div id=load></div>
+  <br><br>
+  <span class=meta>Showing <b id=pages></b> pages</span> <a href='/edit?${encoder.encode(f)}'>[edit]</a>
+  <script>
+    let current = document.getElementById('currently-viewing');
+    let pageCount = document.getElementById('pages');
+    current.value = location.search.slice(1);
+
+    		function expandString(input) {
+			const regex = /(?:\\[(\\w+)\\]|(\\w))(\\d*)/g;
+			const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
+			// console.log(i);
+			// console.log(input, i);
+			if (input === i) {
+				return i;
+			}
+
+			return expandString(i);
+		}
+
+    current.onkeyup = () => {
+            const t = window.location.protocol + '//' + window.location.host + window.location.pathname + '?' + current.value;
+            window.history.replaceState(null, '', t);
+            update();
+    }
+
+    const load = document.getElementById('load');
+    async function update() {
+      let v = current.value;
+      let d = await fetch('./decode?data='+encodeURIComponent(v)).then(x=>x.json());
+
+      console.log(d);
+      const frames = d.map(x=>x.data.split('|').map(x=>expandString(x)));
+      pageCount.innerText = frames.length;
+      let txt = '';
+      const mh = frames.map(x=>x.length).reduce((x,y)=>Math.max(x,y));
+      const mw = frames.map(x=>Math.max(...x.map(y=>y.length))).reduce((x,y)=>Math.max(x,y));
+      console.log(mw);
+      let i = 0;
+      let has_comments = d.some(x=>x.comment !== '');
+      for (let frame of frames) {
+        while (frame.length < mh) {
+          frame.unshift(Array(mw).fill('E').join(''));
+        }
+
+        for (let j = 0; j < frame.length; j++) {
+          while (frame[j].length < mw) {
+            frame[j] += 'E';
+          }
+        }
+          
+        txt += \`<div class=frame><img src='/render?grid=\${frame.join('|')}'><br><span class=meta>\${has_comments ? '&nbsp;'+(d[i].comment || '<i>empty</i>') : ''}</span></div>\`;
+        i++;
+      }
+      load.innerHTML = txt;
+    }
+
+    update();
+  </script>
+</body>
+
+</html>`;
+};

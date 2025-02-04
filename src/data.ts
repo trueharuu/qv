@@ -1116,5 +1116,13 @@ input[type=number] {
 .ib {
     display: inline-block
 }
+
+a {
+    color: #aaaaaa
+}
+
+b {
+    font-weight: bolder;
+}
     
 `;
