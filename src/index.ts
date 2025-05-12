@@ -74,6 +74,13 @@ export default {
 			if (parts.length === 1) {
 				return new Response(listren(+parts[0]), { headers: { 'Content-Type': 'text/html' } });
 			} else if (parts.length === 2) {
+				if (parts[1] === "only-i") {
+					return new Response(listren(+parts[0], 'only-i'), { headers: { 'Content-Type': 'text/html' } });
+				}
+
+				if (parts[1] === "side-well") {
+					return new Response(listren(+parts[0], 'side-well'), { headers: { 'Content-Type': 'text/html' } });
+				}
 				return new Response(listren_specific(+parts[0], parts[1]), { headers: { 'Content-Type': 'text/html' } });
 			} else {
 				return new Response();
@@ -88,12 +95,12 @@ export default {
 				i = fumenToGrid(i);
 			}
 
-			console.log('path', i);
+			// console.log('path', i);
 			return new Response(board_editor(i), { headers: { 'Content-Type': 'text/html' } });
 		} else if (path === '/view') {
 			let i = u.search.slice(1);
 			if (!/^[vmd]\d+?@/.test(i)) {
-				console.log(i);
+				// console.log(i);
 				i = gridToFumen(i);
 			}
 			return new Response(view(decoder.decode(i)), { headers: { 'Content-Type': 'text/html' } });

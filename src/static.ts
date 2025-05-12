@@ -962,9 +962,9 @@ export const board_editor = (g: string) => `<html>
 			// console.log(update);
 			if (update) {
 				output.value = pages.join(';');
-        console.log(window.location);
+        // console.log(window.location);
         const t = window.location.protocol + '//' + window.location.host + window.location.pathname + '?' + output.value;
-        console.log(t);
+        // console.log(t);
         window.history.replaceState(null, '', t);
 			}
 
@@ -999,10 +999,10 @@ export const board_editor = (g: string) => `<html>
 		// console.log(expandString('E2'));
 
 		function importPage(update = true) {
-			console.log(1);
+			// console.log(1);
 			const currentGrid = pages[currentPage] || 'E'.repeat(COLS).repeat(ROWS);
 			const rows = currentGrid.split('|').map(x=>expandString(x));
-			console.log("rows", rows);
+			// console.log("rows", rows);
 
 			const prevRows = ROWS;
 			const prevCols = COLS;
@@ -1159,7 +1159,7 @@ export const board_editor = (g: string) => `<html>
 
     if (predata) {
       if (/^v\\d+@/.test(predata)) {
-        console.log(predata);
+        // console.log(predata);
         document.getElementById('fumen').value = predata;
         importFumen();
       } else {
@@ -1248,13 +1248,13 @@ export const view = (f: Pages) => {
       let v = current.value;
       let d = await fetch('./decode?data='+encodeURIComponent(v)).then(x=>x.json());
 
-      console.log(d);
+      // console.log(d);
       const frames = d.map(x=>x.data.split('|').map(x=>expandString(x)));
       pageCount.innerText = frames.length;
       let txt = '';
       const mh = frames.map(x=>x.length).reduce((x,y)=>Math.max(x,y));
       const mw = frames.map(x=>Math.max(...x.map(y=>y.length))).reduce((x,y)=>Math.max(x,y));
-      console.log(mw);
+      // console.log(mw);
       let i = 0;
       let has_comments = d.some(x=>x.comment !== '');
       for (let frame of frames) {

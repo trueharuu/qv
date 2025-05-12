@@ -22,7 +22,7 @@ export async function render_grid(
 	delay: number = 500,
 	loop: boolean = true
 ): Promise<Buffer> {
-	console.log(scale);
+	// console.log(scale);
 	const t = g.split(';');
 	const f = t.map((g) => g.split('|').map((x) => [...x])).map((grid) => (mir ? mirror_grid(preprocess_grid(grid)) : preprocess_grid(grid)));
 
@@ -137,7 +137,7 @@ export function expandString(input: string) {
 
 export function preprocess_grid(grid: Array<Array<string>>): Grid {
 	const grid2 = grid.map((x) => expandString(x.join('')));
-	console.log(grid, grid2);
+	// console.log(grid, grid2);
 	const ng: Array<Array<string>> = [];
 	for (const i of grid2) {
 		const nr = [];

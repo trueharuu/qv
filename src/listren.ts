@@ -1,11 +1,29 @@
 import { after_line_clear } from './common';
 import { resp } from './patterns';
-import { to_grid } from './piece';
+import { Piece, to_grid } from './piece';
 
-export function listren(res: number) {
+export function listren(res: number, filter: string = 'none') {
 	let txt = '';
 	txt += `<h1>All ${res}-residual patterns</h1>`;
-	const p = resp()[res];
+	let p = resp()[res];
+	if (filter === 'only-i') {
+		p = p
+			.map((x) => {
+				x.continuations = x.continuations.filter((x) => x[0] === 'I' && !x[1].some((y) => y.every((z) => z === Piece.I)));
+				return x;
+			})
+			.filter((x) => x.continuations.length > 0);
+	}
+
+	if (filter === 'side-well') {
+		p = p.filter((x) => x.grid.at(-1)?.[0] === Piece.E || x.grid.at(-1)?.[3] === Piece.E);
+		p = p
+			.map((x) => {
+				x.continuations = x.continuations.filter((x) => after_line_clear(x[1], p) === undefined);
+				return x;
+			})
+			.filter((x) => x.continuations.length > 0);
+	}
 	let v = 0;
 	let b = 0;
 	// console.log(p.length);
@@ -20,6 +38,7 @@ export function listren(res: number) {
 			if (leads_to === '?') {
 				b += 1;
 			}
+			console.log('dbg', c[1]);
 			txt += `<div style='display:inline-block; padding-top: 2%'>
         <a href='/list/ren/${res}/${leads_to}'><img src='/render?grid=${to_grid(c[1])}&clear=true'></a>
         <br><span class='mino' style='color:var(--${c[0].toLowerCase()}b)'>${
@@ -41,7 +60,7 @@ export function listren(res: number) {
     <meta property="og:url" content="https://qv.rqft.workers.dev/list/ren/${res}">
     <meta property="og:image" content="https://qv.rqft.workers.dev/render?grid=${to_grid(rcon[1])}&clear=true">
     <meta property="og:description" content="List of all ${res}-residual patterns">
-      <link rel=stylesheet href=\'../../css\'>
+      <link rel=stylesheet href=\'${filter ? '../' : ''}../../css\'>
     </head>
     <body>
       <i class=meta>There are <b>${v}</b> images on this page. It may take some time for your browser to load all of them.</i>
