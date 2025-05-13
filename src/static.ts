@@ -538,18 +538,30 @@ export const board_editor = (g: string) => `<html>
 			border-color: #444;
 		}
 
-    #removePage {
+    .danger {
       color: #ff6b6b;
       border-color: #ff6b6b;
     }
 
-    #removePage:hover {
+    .danger:hover {
       background: rgba(255, 107, 107, 0.1);
+      border-color: #ff6b6b;
     }
 
-		#removePage:disabled:hover {
+		.danger:disabled:hover {
 			background: #2c2d30;
+      border-color: #ff6b6b;
 		}
+
+    .warn {
+      color: #ffff6b;
+      border-color: #ffff6b;
+    }
+
+    .warn:hover {
+      background: rgba(255, 255, 107, 0.1);
+      border-color: #ffff6b;
+    }
   </style>
 </head>
 <body>
@@ -563,7 +575,7 @@ export const board_editor = (g: string) => `<html>
         <span id="pageInfo" class="meta">Page 1/1</span>
         <button id="nextPage">&gt;</button>
         <button id="newPage">&plus;</button>
-        <button id="removePage" onclick="removePage()">Remove Page</button>
+        <button id="removePage" class=danger onclick="removePage()">Remove Page</button>
       </div>
 
       <div class="board-controls">
@@ -577,14 +589,17 @@ export const board_editor = (g: string) => `<html>
           <span style="background:var(--z)" data-piece="Z">Z</span>
           <span style="background:var(--t)" data-piece="T">T</span>
           <span style="background:var(--g)" data-piece="G">G</span>
-          <span style="background:var(--d)" data-piece="G">D</span>
+          <span style="background:var(--d)" data-piece="D">D</span>
         </div>
         <div>
           <button id="edit-mirror">Mirror</button>
           <button id="edit-to-gray">To Gray</button>
           <button id="edit-only-gray">Only Gray</button>
           <button id="edit-skim">Skim</button>
-          <button id="edit-clear">Clear</button>
+          <button id="edit-clear" class=danger>Clear</button>
+          
+          <button id="edit-undo" class=warn>Undo</button>
+          <button id="edit-redo" class=warn>Redo</button>
         </div>
         
         <div>
@@ -927,6 +942,14 @@ export const board_editor = (g: string) => `<html>
       updateOutput();
     }
 
+    document.getElementById('edit-undo').onclick = () => {
+      undo();
+    }
+
+    document.getElementById('edit-redo').onclick = () => {
+      redo();
+    }
+
     document.getElementById('edit-skim').onclick = () => {
       saveState();
       const r = expandString(pages[currentPage]).split('|');
@@ -1046,7 +1069,7 @@ export const board_editor = (g: string) => `<html>
 						}
 						col += num;
 						j++;
-					} else if ('IJLOSZGTE'.includes(char)) {
+					} else if ('IJLOSZDGTE'.includes(char)) {
 						cell.textContent = char;
 						cell.style.background = \`var(--\${char.toLowerCase()})\`;
 						col++;
