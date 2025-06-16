@@ -657,7 +657,8 @@ export const board_editor = (g: string) => `<html>
           </div>
         </div>
         <div>
-          <img id="preview" style="max-width:100%">
+          <br>
+          <div><img id="preview" style="max-width:100%"></div>
 					<br>
           <button onclick="copyPreviewUrl()">Copy Image URL</button>
           <button onclick="copyPageUrl()">Copy URL</button>
@@ -770,6 +771,13 @@ export const board_editor = (g: string) => `<html>
         updateOutput(true);
       }
     });
+
+    document.addEventListener('touchend', e=>{
+      if (isDrawing) {
+        updateOutput(true);
+      }
+    });
+
 
 		function initializeBoard() {
 			const oldState = [];

@@ -22,11 +22,14 @@ export async function render_grid(
 	mir: boolean = false,
 	delay: number = 500,
 	loop: boolean = true,
-	pad: number = 2,
+	pad: number = 2
 ): Promise<Buffer> {
 	// console.log(scale);
-	const t = g.split(';');
-	const f = t.map((g) => parse_grid(g)).map(x=>preprocess_grid(x)).map((grid) => (mir ? mirror_grid(grid) : grid));
+	const t = g.split(';').map((g) => parse_grid(g));
+
+	const ew = Math.max(...t.map((x) => Math.max(...x.board.map((y) => y.length))));
+	const eh = Math.max(...t.map((x) => x.board.length));
+	const f = t.map((x) => preprocess_grid(x, ew, eh)).map((grid) => (mir ? mirror_grid(grid) : grid));
 
 	const id = `${f.map((ng) => ng.board.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}@${loop}@${delay}@${pad}`;
 	if (rmemo.has(id)) {
@@ -34,23 +37,14 @@ export async function render_grid(
 	}
 
 	if (f.length > 1) {
-		const wi = Math.max(...f.map((ng) => scale * Math.max(ng.board[0].length * BW + 2 * pad, 0)));
-		const mw = Math.max(...f.map((ng) => Math.max(...ng.board.map((x) => x.length))));
-		// console.log('mw', mw);
-		const hi = Math.max(...f.map((ng) => scale * (ng.board.length * BH + 2 * pad + HL)));
-		const mh = Math.max(...f.map((x) => x.board.length));
-		const gif = new GIF(wi, hi);
+		console.log(f.map((x) => x.board));
 
+		const w = scale * Math.max(ew * BW + 2 * pad, 0);
+		const h = scale * (eh * BH + 2 * pad + HL);
+		const gif = new GIF(w, h);
 		gif.setRepeat(loop ? 0 : -1);
 		gif.writeHeader();
 		gif.setDelay(delay);
-		// gif.setImagePalette(
-		// 	Object.values(Piece)
-		// 		.filter((x) => typeof x === 'number')
-		// 		.map(piece_color)
-		// 		.map(to_rgba)
-		// 		.flat()
-		// );
 		gif.setTransparent(0x000000);
 		const chunks: Buffer[] = [];
 
@@ -58,24 +52,19 @@ export async function render_grid(
 			// console.log(chunk);
 			chunks.push(chunk);
 		});
-		for (let ng of f) {
-			// const width = scale * Math.max(ng[0].length * BW + 2 * PADDING, 0);
-			// const height = scale * (ng.length * BH + 2 * PADDING + HL);
-			// console.log(ng.length, mh);
-			while (ng.board.length < mh) {
-				ng.board = [[], ...ng.board];
-			}
-			const buf = new Array(4 * wi * hi).fill(0);
-			render_frame(ng, buf, wi, lcs, spec, scale, mw);
+
+		for (const ng of f) {
+			const buf = new Array(4*w*h);
+			render_frame(ng, buf, w, lcs, spec, scale, pad)
 			gif.addFrame(buf);
 		}
 
 		gif.setQuality(1);
 		gif.finish();
 		const gb = Buffer.concat(chunks);
+
 		rmemo.set(id, gb);
 		return gb;
-		// throw 'todo';
 	} else {
 		const ng = f[0];
 		const img = new PNG({
@@ -96,8 +85,8 @@ export function render_frame(
 	lcs: boolean,
 	spec: boolean,
 	scale: number,
-	PADDING: number,
-	maxwidth: number = Math.max(...ng.board.map((x) => x.length)),
+	pad: number,
+	maxwidth: number = Math.max(...ng.board.map((x) => x.length))
 ) {
 	for (let i = 0; i < ng.board.length; i++) {
 		const r = ng.board[i];
@@ -111,14 +100,14 @@ export function render_frame(
 			let col = is_line_clear ? applyFilters(piece_color(c), 1.2, 0.8) : piece_color(c);
 			for (let pi = i * BW; pi < (i + 1) * BW; pi++) {
 				for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-					setPixelAt(buf, width, pj + PADDING, pi + PADDING + HL, scale, col);
+					setPixelAt(buf, width, pj + pad, pi + pad + HL, scale, col);
 				}
 			}
 
 			if (has_air && spec) {
 				for (let pi = i * BW; pi < i * BW + HL; pi++) {
 					for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-						setPixelAt(buf, width, pj + PADDING, pi + PADDING, scale, piece_color_bright(c));
+						setPixelAt(buf, width, pj + pad, pi + pad, scale, piece_color_bright(c));
 					}
 				}
 			}
@@ -126,9 +115,7 @@ export function render_frame(
 	}
 }
 
-
-
-export function preprocess_grid(grid: Grid): Grid {
+export function preprocess_grid(grid: Grid, est_w: number = 0, est_h: number = 0): Grid {
 	const grid2 = grid.board;
 	// console.log(grid, grid2);
 	const ng: Array<Array<string>> = [];
@@ -143,17 +130,24 @@ export function preprocess_grid(grid: Grid): Grid {
 		ng.push(nr);
 	}
 
-	const longest = Math.max(...ng.map((x) => x.length));
+	while (ng.length < Math.max(grid.board.length, est_h)) {
+		ng.unshift([]);
+	}
+
+	const longest = Math.max(...ng.map((x) => x.length), est_w);
 	for (const i of ng) {
 		while (i.length < longest) {
 			i.push('e');
 		}
 	}
-	return {board:[
-		// Array(longest).fill(Piece.E) as Piece[],
-		// Array(longest).fill(Piece.E) as Piece[],
-		...ng.map((x) => x.map((y) => piece_from_str(y))),
-	], comment:grid.comment};
+	return {
+		board: [
+			// Array(longest).fill(Piece.E) as Piece[],
+			// Array(longest).fill(Piece.E) as Piece[],
+			...ng.map((x) => x.map((y) => piece_from_str(y))),
+		],
+		comment: grid.comment,
+	};
 }
 
 export function setSinglePixelAt(p: Array<number>, width: number, x: number, y: number, c: number) {
