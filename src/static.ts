@@ -634,10 +634,7 @@ export const board_editor = (g: string) => `<html>
       <div>
         <h3>Preview</h3>
         <div class="render-options">
-          <div class="render-option">
-            <label>Animation Delay:</label>
-            <input type="number" id="delay" value="500" min="0" style="width:80px"> ms
-          </div>
+
           <div class="render-option">
             <input type="checkbox" id="clear" checked>
             <label for="clear">Show Line Clears</label>
@@ -649,6 +646,14 @@ export const board_editor = (g: string) => `<html>
           <div class="render-option">
             <input type="checkbox" id="spec" checked>
             <label for="spec">Show highlights</label>
+          </div>
+          <div class="render-option">
+            <label>Animation Delay:</label>
+            <input type="number" id="delay" value="500" min="0" style="width:80px"> ms
+          </div>
+          <div class="render-option">
+            <label>Padding:</label>
+            <input type="number" id="pad" value="2" min="0" style="width:80px"> units
           </div>
         </div>
         <div>
@@ -760,6 +765,12 @@ export const board_editor = (g: string) => `<html>
 			}
 		});
 
+    document.addEventListener('mouseup', e=>{
+      if (isDrawing) {
+        updateOutput(true);
+      }
+    });
+
 		function initializeBoard() {
 			const oldState = [];
 			if (board.rows.length > 0) {
@@ -806,6 +817,8 @@ export const board_editor = (g: string) => `<html>
 							}
 						}
 					});
+
+          
 				}
 			}
 			updateOutput(false);
@@ -839,6 +852,8 @@ export const board_editor = (g: string) => `<html>
 				COLS = newCols;
 				initializeBoard();
 			}
+
+      updatePreview();
 		}
 
 		rowsInput.addEventListener('keyup', handleResize);
@@ -871,7 +886,7 @@ export const board_editor = (g: string) => `<html>
 			}
 		});
 
-		function updateCell(cell, force = true) {
+		function updateCell(cell, force = true, update = false) {
 			saveState();
 			if (force) {
 				// Initial click
@@ -901,7 +916,7 @@ export const board_editor = (g: string) => `<html>
 					cell.style.background = \`var(--\${currentDragPiece.toLowerCase()})\`;
 				}
 			}
-			updateOutput();
+			updateOutput(update);
 		}
 
     document.getElementById('edit-clear').onclick = () => {
@@ -994,7 +1009,7 @@ export const board_editor = (g: string) => `<html>
 				grid.push(optimizedRow);
 			}
 			const gridString = grid.join('|');
-      console.log(comment.value);
+      // console.log(comment.value);
 			pages[currentPage] = gridString + (comment.value === '' ? '' : '=' + comment.value);
 			// console.log(update);
 			if (update) {
@@ -1005,18 +1020,23 @@ export const board_editor = (g: string) => `<html>
         window.history.replaceState(null, '', t);
 			}
 
-      updatePreview();
+      updatePreview(update);
       vtotal.href = '/view?' + pages.join(';');
       vpage.href = '/view?' + pages[currentPage];
       
 		}
 
-		function updatePreview() {
+		function updatePreview(update=true) {
 			const delayMs = parseInt(delay.value) || 500;
+      const pad = document.getElementById('pad').value ?? 2;
 			const showClears = document.getElementById('clear').checked;
 			const shouldLoop = document.getElementById('loop').checked;
 			const spec = document.getElementById('spec').checked;
-			preview.src = \`/render.gif?grid=\${pages.join(';')}&delay=\${delayMs}&clear=\${showClears}&loop=\${shouldLoop}&spec=\${spec}\`;
+      // console.log(pad);
+      if (update) {
+        preview.src = \`/render.gif?grid=\${pages.join(';')}&delay=\${delayMs}&clear=\${showClears}&loop=\${shouldLoop}&spec=\${spec}&pad=\${pad}\`;
+      }
+			
 			document.getElementById('pageInfo').textContent = \`Page \${currentPage + 1}/\${pages.length}\`;
 			document.getElementById('prevPage').disabled = currentPage === 0;
 			document.getElementById('nextPage').disabled = currentPage === pages.length - 1;
@@ -1179,6 +1199,7 @@ export const board_editor = (g: string) => `<html>
 			const fumenText = document.getElementById('fumen').value;
 			if (!fumenText) return;
 
+
 			fetch(\`/convert?data=\${encodeURIComponent(fumenText)}\`)
 				.then(r => r.text())
 				.then(grid => {
@@ -1195,10 +1216,10 @@ export const board_editor = (g: string) => `<html>
 		document.getElementById('clear').addEventListener('change', updatePreview);
 		document.getElementById('loop').addEventListener('change', updatePreview);
 		document.getElementById('spec').addEventListener('change', updatePreview);
+		document.getElementById('pad').addEventListener('keyup', updatePreview);
 
-		updateOutput(false);
     const predata = decodeURIComponent(window.location.search.slice(1));
-    console.log(predata);
+    // console.log(predata);
     if (predata) {
       if (/^v\\d+@/.test(predata)) {
         // console.log(predata);
@@ -1209,6 +1230,7 @@ export const board_editor = (g: string) => `<html>
         importText(false);
       }
     }
+		updateOutput(true);
   </script>
 </body>
 
@@ -1292,7 +1314,7 @@ export const view = (f: Pages) => {
       let d = await fetch('./decode?data='+encodeURIComponent(v)).then(x=>x.json());
 
       toedit.href = '/edit?' + v;
-      console.log(d);
+      // console.log(d);
 
       const frames = d.map(x=>x.data.split('|').map(x=>expandString(x)));
       pageCount.innerText = frames.length;

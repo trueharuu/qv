@@ -6,13 +6,22 @@ import { getBlockXYs } from 'tetris-fumen/lib/inner_field';
 import { inspect } from 'util';
 
 export function gridToFumen(grid: string): string {
-	const t = grid.split(';').map(x => parse_grid(x));
-	const u = t.map(x=>({board:x.board.map(x=>x.map(y=>y==='G'?'X':y==='E'?'_':y).join('').padEnd(10, '_').slice(0, 10)).join(''),comment:x.comment}));
+	const t = grid.split(';').map((x) => parse_grid(x));
+	const u = t.map((x) => ({
+		board: x.board
+			.map((x) =>
+				x
+					.map((y) => (y === 'G' ? 'X' : y === 'E' ? '_' : y))
+					.join('')
+					.padEnd(10, '_')
+					.slice(0, 10)
+			)
+			.join(''),
+		comment: x.comment,
+	}));
 	console.log(u);
-	const st = u.map(x=>
-		({field:Field.create(x.board),comment:x.comment})
-	);
-	return encoder.encode(st)
+	const st = u.map((x) => ({ field: Field.create(x.board), comment: x.comment }));
+	return encoder.encode(st);
 }
 
 export function fumenToGrid(z: string, compress: boolean = true): string {
@@ -23,14 +32,21 @@ export function fumenToGrid(z: string, compress: boolean = true): string {
 		const field = page.field;
 
 		if (page.operation) {
-			for (const { x, y } of getBlockXYs(parsePiece(page.operation.type), parseRotation(page.operation.rotation), page.operation.x, page.operation.y)) {
-				field.set(x, y, page.operation.type)
+			for (const { x, y } of getBlockXYs(
+				parsePiece(page.operation.type),
+				parseRotation(page.operation.rotation),
+				page.operation.x,
+				page.operation.y
+			)) {
+				field.set(x, y, page.operation.type);
 			}
 		}
-		const s = parse_grid(field.str({ reduced: true, garbage: false, separator: '|' }).replace(/_/g, 'E'));
+		const s = parse_grid(
+			field.str({ reduced: true, garbage: false, separator: '|' }).replace(/_/g, 'E').replace(/X/g, 'G') || 'EEEEEEEEEE'
+		);
 
-		pages.push(s);
+		pages.push({ board: s.board, comment: page.comment || undefined });
 	}
 
-	return pages.map(x => to_grid(x)).join(';');
+	return pages.map((x) => to_grid(x)).join(';');
 }

@@ -29,11 +29,12 @@ export default {
 			const mir = u.searchParams.get('mirror') == 'true';
 			const lp = u.searchParams.get('loop') !== 'false';
 			const spec = u.searchParams.get('spec') !== 'false';
-			const delay = Number(u.searchParams.get('delay') || '500');
+			const pad = Number(u.searchParams.get('pad') ?? '2');
+			const delay = Number(u.searchParams.get('delay') ?? '500');
 
 			const is_many_frames = p.includes(';');
 
-			const b = await render_grid(p, spec, lc, scale, mir, delay, lp);
+			const b = await render_grid(p, spec, lc, scale, mir, delay, lp, pad);
 
 			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
 		} else if (path === '/fumen.gif' || path === '/fumen.png' || path === '/fumen') {
@@ -46,11 +47,12 @@ export default {
 			const mir = u.searchParams.get('mirror') == 'true';
 			const lp = u.searchParams.get('loop') !== 'false';
 			const spec = u.searchParams.get('spec') !== 'false';
-			const delay = Number(u.searchParams.get('delay') || '500');
+			const pad = Number(u.searchParams.get('pad') ?? '2');
+			const delay = Number(u.searchParams.get('delay') ?? '500');
 
 			const is_many_frames = p.includes(';');
 
-			const b = await render_grid(p, spec, lc, scale, mir, delay, lp);
+			const b = await render_grid(p, spec, lc, scale, mir, delay, lp, pad);
 
 			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
 		} else if (path === '/convert') {

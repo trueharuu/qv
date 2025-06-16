@@ -11,7 +11,7 @@ const BW = 20 / 4;
 const BH = 20 / 4;
 const HL = 4 / 4;
 const SHADING = 4 / 4;
-const PADDING = 8 / 4;
+const PADDING = 0 / 4;
 const SHADOW = 0x26262aff;
 export const rmemo = new Map();
 export async function render_grid(
@@ -21,22 +21,23 @@ export async function render_grid(
 	scale: number = 5,
 	mir: boolean = false,
 	delay: number = 500,
-	loop: boolean = true
+	loop: boolean = true,
+	pad: number = 2,
 ): Promise<Buffer> {
 	// console.log(scale);
 	const t = g.split(';');
 	const f = t.map((g) => parse_grid(g)).map(x=>preprocess_grid(x)).map((grid) => (mir ? mirror_grid(grid) : grid));
 
-	const id = `${f.map((ng) => ng.board.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}@${loop}@${delay}`;
+	const id = `${f.map((ng) => ng.board.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}@${loop}@${delay}@${pad}`;
 	if (rmemo.has(id)) {
 		return rmemo.get(id)!;
 	}
 
 	if (f.length > 1) {
-		const wi = Math.max(...f.map((ng) => scale * Math.max(ng.board[0].length * BW + 2 * PADDING, 0)));
+		const wi = Math.max(...f.map((ng) => scale * Math.max(ng.board[0].length * BW + 2 * pad, 0)));
 		const mw = Math.max(...f.map((ng) => Math.max(...ng.board.map((x) => x.length))));
 		// console.log('mw', mw);
-		const hi = Math.max(...f.map((ng) => scale * (ng.board.length * BH + 2 * PADDING + HL)));
+		const hi = Math.max(...f.map((ng) => scale * (ng.board.length * BH + 2 * pad + HL)));
 		const mh = Math.max(...f.map((x) => x.board.length));
 		const gif = new GIF(wi, hi);
 
@@ -78,10 +79,10 @@ export async function render_grid(
 	} else {
 		const ng = f[0];
 		const img = new PNG({
-			width: scale * Math.max(ng.board[0].length * BW + 2 * PADDING, 0),
-			height: scale * (ng.board.length * BH + 2 * PADDING + HL),
+			width: scale * Math.max(ng.board[0].length * BW + 2 * pad, 0),
+			height: scale * (ng.board.length * BH + 2 * pad + HL),
 		});
-		render_frame(ng, img.data, img.width, lcs, spec, scale);
+		render_frame(ng, img.data, img.width, lcs, spec, scale, pad);
 		const buf = PNG.sync.write(img);
 		rmemo.set(id, buf);
 		return buf;
@@ -95,7 +96,8 @@ export function render_frame(
 	lcs: boolean,
 	spec: boolean,
 	scale: number,
-	maxwidth: number = Math.max(...ng.board.map((x) => x.length))
+	PADDING: number,
+	maxwidth: number = Math.max(...ng.board.map((x) => x.length)),
 ) {
 	for (let i = 0; i < ng.board.length; i++) {
 		const r = ng.board[i];
@@ -109,14 +111,14 @@ export function render_frame(
 			let col = is_line_clear ? applyFilters(piece_color(c), 1.2, 0.8) : piece_color(c);
 			for (let pi = i * BW; pi < (i + 1) * BW; pi++) {
 				for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-					setPixelAt(buf, width, pj + PADDING, pi + PADDING, scale, col);
+					setPixelAt(buf, width, pj + PADDING, pi + PADDING + HL, scale, col);
 				}
 			}
 
 			if (has_air && spec) {
 				for (let pi = i * BW; pi < i * BW + HL; pi++) {
 					for (let pj = j * BW; pj < (j + 1) * BW; pj++) {
-						setPixelAt(buf, width, pj + PADDING, pi + PADDING - HL, scale, piece_color_bright(c));
+						setPixelAt(buf, width, pj + PADDING, pi + PADDING, scale, piece_color_bright(c));
 					}
 				}
 			}

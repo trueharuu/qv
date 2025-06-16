@@ -134,7 +134,7 @@ export function expandString(input: string) {
 }
 
 export function to_grid(v: Grid) {
-	return v.board.map((x) => x.map((y) => piece_to_str(y).toLowerCase()).join('')).join('|') + COMMENT_SEP + v.comment;
+	return v.board.map((x) => x.map((y) => piece_to_str(y).toLowerCase()).join('')).join('|') + (v.comment === undefined ? '' : COMMENT_SEP + v.comment);
 }
 
 export function mirror_grid(g: Grid) {
