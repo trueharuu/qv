@@ -1,6 +1,7 @@
 import { PNG } from 'pngjs';
 import GIF from 'gif-encoder';
-import { Grid, mirror_grid, Piece, piece_color, piece_color_bright, piece_from_str } from './piece';
+import { Grid, mirror_grid, parse_grid, Piece, piece_color, piece_color_bright, piece_from_str } from './piece';
+import { inspect } from 'util';
 
 export async function parallel<T, U>(v: Array<T>, f: (t: T, idx: number) => Promise<U>): Promise<Array<U>> {
 	return await Promise.all(v.map((x, i) => f(x, i)));
@@ -24,19 +25,19 @@ export async function render_grid(
 ): Promise<Buffer> {
 	// console.log(scale);
 	const t = g.split(';');
-	const f = t.map((g) => g.split('|').map((x) => [...x])).map((grid) => (mir ? mirror_grid(preprocess_grid(grid)) : preprocess_grid(grid)));
+	const f = t.map((g) => parse_grid(g)).map(x=>preprocess_grid(x)).map((grid) => (mir ? mirror_grid(grid) : grid));
 
-	const id = `${f.map((ng) => ng.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}@${loop}@${delay}`;
+	const id = `${f.map((ng) => ng.board.map((x) => x.join('')).join('|')).join(',')}@${spec}@${lcs}@${scale}@${loop}@${delay}`;
 	if (rmemo.has(id)) {
 		return rmemo.get(id)!;
 	}
 
 	if (f.length > 1) {
-		const wi = Math.max(...f.map((ng) => scale * Math.max(ng[0].length * BW + 2 * PADDING, 0)));
-		const mw = Math.max(...f.map((ng) => Math.max(...ng.map((x) => x.length))));
+		const wi = Math.max(...f.map((ng) => scale * Math.max(ng.board[0].length * BW + 2 * PADDING, 0)));
+		const mw = Math.max(...f.map((ng) => Math.max(...ng.board.map((x) => x.length))));
 		// console.log('mw', mw);
-		const hi = Math.max(...f.map((ng) => scale * (ng.length * BH + 2 * PADDING + HL)));
-		const mh = Math.max(...f.map((x) => x.length));
+		const hi = Math.max(...f.map((ng) => scale * (ng.board.length * BH + 2 * PADDING + HL)));
+		const mh = Math.max(...f.map((x) => x.board.length));
 		const gif = new GIF(wi, hi);
 
 		gif.setRepeat(loop ? 0 : -1);
@@ -60,8 +61,8 @@ export async function render_grid(
 			// const width = scale * Math.max(ng[0].length * BW + 2 * PADDING, 0);
 			// const height = scale * (ng.length * BH + 2 * PADDING + HL);
 			// console.log(ng.length, mh);
-			while (ng.length < mh) {
-				ng = [[], ...ng];
+			while (ng.board.length < mh) {
+				ng.board = [[], ...ng.board];
 			}
 			const buf = new Array(4 * wi * hi).fill(0);
 			render_frame(ng, buf, wi, lcs, spec, scale, mw);
@@ -77,8 +78,8 @@ export async function render_grid(
 	} else {
 		const ng = f[0];
 		const img = new PNG({
-			width: scale * Math.max(ng[0].length * BW + 2 * PADDING, 0),
-			height: scale * (ng.length * BH + 2 * PADDING + HL),
+			width: scale * Math.max(ng.board[0].length * BW + 2 * PADDING, 0),
+			height: scale * (ng.board.length * BH + 2 * PADDING + HL),
 		});
 		render_frame(ng, img.data, img.width, lcs, spec, scale);
 		const buf = PNG.sync.write(img);
@@ -94,13 +95,13 @@ export function render_frame(
 	lcs: boolean,
 	spec: boolean,
 	scale: number,
-	maxwidth: number = Math.max(...ng.map((x) => x.length))
+	maxwidth: number = Math.max(...ng.board.map((x) => x.length))
 ) {
-	for (let i = 0; i < ng.length; i++) {
-		const r = ng[i];
+	for (let i = 0; i < ng.board.length; i++) {
+		const r = ng.board[i];
 		for (let j = 0; j < r.length; j++) {
 			const c = r[j];
-			const has_air = ng[i - 1]?.[j] === Piece.E || ng[i - 1]?.[j] === undefined;
+			const has_air = ng.board[i - 1]?.[j] === Piece.E || ng.board[i - 1]?.[j] === undefined;
 			// console.log(ng[i][j], ng[i - 1]?.[j]);
 			// console.log('len', maxwidth);
 
@@ -123,20 +124,10 @@ export function render_frame(
 	}
 }
 
-export function expandString(input: string) {
-	const regex = /(?:\[(\w+)\]|(\w))(\d*)/g;
-	const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
-	// console.log(i);
-	// console.log(input, i);
-	if (input === i) {
-		return i;
-	}
 
-	return expandString(i);
-}
 
-export function preprocess_grid(grid: Array<Array<string>>): Grid {
-	const grid2 = grid.map((x) => expandString(x.join('')));
+export function preprocess_grid(grid: Grid): Grid {
+	const grid2 = grid.board;
 	// console.log(grid, grid2);
 	const ng: Array<Array<string>> = [];
 	for (const i of grid2) {
@@ -156,11 +147,11 @@ export function preprocess_grid(grid: Array<Array<string>>): Grid {
 			i.push('e');
 		}
 	}
-	return [
+	return {board:[
 		// Array(longest).fill(Piece.E) as Piece[],
 		// Array(longest).fill(Piece.E) as Piece[],
 		...ng.map((x) => x.map((y) => piece_from_str(y))),
-	];
+	], comment:grid.comment};
 }
 
 export function setSinglePixelAt(p: Array<number>, width: number, x: number, y: number, c: number) {

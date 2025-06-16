@@ -75,7 +75,7 @@ export async function pathfind(state: State): Promise<Output> {
     const nw = [[state.board, cont[0], cont[1]], ...sf] as [
       Pattern,
       Piece,
-      Piece[][],
+      Grid,
     ][];
     // console.log('nw', nw, 'max', max);
     if (nw.length > max.length) {
@@ -88,7 +88,7 @@ export async function pathfind(state: State): Promise<Output> {
 }
 
 enum UsedPiece {
-  Current, // the hold feature was not used
-  Hold, // the hold feature was used and there was a piece in the hold slot
-  Next, // the hold feature was used and it was empty, advancing the queue
+  Current, // hold was not used
+  Hold, // hold was used and there was a piece in the hold slot
+  Next, // hold was used and it was empty, advancing the queue
 }

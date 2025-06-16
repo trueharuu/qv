@@ -1,40 +1,36 @@
 import { decoder, encoder, Field } from 'tetris-fumen';
 import { preprocess_grid } from './render';
+import { parse_grid, Piece, to_grid } from './piece';
+import { Rotation, parsePiece, parseRotation } from 'tetris-fumen/lib/defines';
+import { getBlockXYs } from 'tetris-fumen/lib/inner_field';
+import { inspect } from 'util';
 
 export function gridToFumen(grid: string): string {
-	return encoder.encode(
-		grid.split(';').map((x) => {
-			return {
-				field: Field.create(
-					preprocess_grid(x.split('|').map((y) => y.split('')))
-						.map((x) => x.join(''))
-						.join('|')
-						.replaceAll('E', '_')
-						.replaceAll('G', 'X')
-						.split('|')
-						.map((y) => y.padEnd(10, '_').slice(0, 10))
-						.join('')
-				),
-			};
-		})
+	const t = grid.split(';').map(x => parse_grid(x));
+	const u = t.map(x=>({board:x.board.map(x=>x.map(y=>y==='G'?'X':y==='E'?'_':y).join('').padEnd(10, '_').slice(0, 10)).join(''),comment:x.comment}));
+	console.log(u);
+	const st = u.map(x=>
+		({field:Field.create(x.board),comment:x.comment})
 	);
+	return encoder.encode(st)
 }
 
 export function fumenToGrid(z: string, compress: boolean = true): string {
-	return decoder
-		.decode(z)
-		.map((x) => {
-			return x.field
-				.str({ reduced: true, garbage: false })
-				.split('\n')
-				.map((y) =>
-					y
-						.replaceAll('_', 'E')
-						.replaceAll('X', 'G')
-						.replace(/E*?$/g, '')
-						.replace(/(.)\1+/g, (match, char) => compress ? `${char}${match.length}` : char.repeat(match.length))
-				)
-				.join('|');
-		})
-		.join(';');
+	const fumen = decoder.decode(z);
+	const pages = [];
+	for (const page of fumen) {
+		// console.log(page);
+		const field = page.field;
+
+		if (page.operation) {
+			for (const { x, y } of getBlockXYs(parsePiece(page.operation.type), parseRotation(page.operation.rotation), page.operation.x, page.operation.y)) {
+				field.set(x, y, page.operation.type)
+			}
+		}
+		const s = parse_grid(field.str({ reduced: true, garbage: false, separator: '|' }).replace(/_/g, 'E'));
+
+		pages.push(s);
+	}
+
+	return pages.map(x => to_grid(x)).join(';');
 }

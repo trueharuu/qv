@@ -25,7 +25,7 @@ export function resp() {
           .map(y => y.split('').map(z => piece_from_str(z))),
       ]);
     resp[r] ||= [];
-    resp[r].push({ id, grid: g2, continuations: c2 } as Pattern);
+    resp[r].push({ id, grid: {board:g2}, continuations: c2 } as Pattern);
   }
 
   return resp;
@@ -48,7 +48,7 @@ export function pcs(): Array<[boolean, number, Array<Piece>, Grid]> {
       ty === 'c',
       Number(r),
       pieces.split('').map(x => piece_from_str(x)),
-      grid.split('|').map(x => x.split('').map(y => piece_from_str(y))),
+      {board:grid.split('|').map(x => x.split('').map(y => piece_from_str(y)))},
     ] as [boolean, number, Array<Piece>, Grid]);
   }
 

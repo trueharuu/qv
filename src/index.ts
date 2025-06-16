@@ -8,14 +8,19 @@ import { board_editor, combo_finder, home, pc_finder, renderguide, view } from '
 import { prerender_combo, prerender_pc, prerender_pc_list } from './prerender';
 import { decoder, encoder, Field } from 'tetris-fumen';
 import { fumenToGrid, gridToFumen } from './fumen';
+import { COMMENT_SEP } from './piece';
 export default {
 	async fetch(request) {
 		const u = new URL(request.url);
+		console.log(request.url);
 		const path = u.pathname;
 
 		if (path === '/') {
 			return new Response(home, { headers: { 'Content-Type': 'text/html' } });
-		} else if (path === '/render/guide') {
+		} else if (path === '/echo') {
+			return new Response(u.search)
+		}
+		else if (path === '/render/guide') {
 			return new Response(renderguide, { headers: { 'Content-Type': 'text/html' } });
 		} else if (path === '/render.gif' || path === '/render.png' || path === '/render') {
 			const p = u.searchParams.get('grid') || '';
@@ -23,11 +28,12 @@ export default {
 			const lc = u.searchParams.get('clear') == 'true' || u.searchParams.get('lcs') == 'true';
 			const mir = u.searchParams.get('mirror') == 'true';
 			const lp = u.searchParams.get('loop') !== 'false';
+			const spec = u.searchParams.get('spec') !== 'false';
 			const delay = Number(u.searchParams.get('delay') || '500');
 
 			const is_many_frames = p.includes(';');
 
-			const b = await render_grid(p, true, lc, scale, mir, delay, lp);
+			const b = await render_grid(p, spec, lc, scale, mir, delay, lp);
 
 			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
 		} else if (path === '/fumen.gif' || path === '/fumen.png' || path === '/fumen') {
@@ -39,11 +45,12 @@ export default {
 			const lc = u.searchParams.get('clear') != 'false' && u.searchParams.get('lcs') != 'false';
 			const mir = u.searchParams.get('mirror') == 'true';
 			const lp = u.searchParams.get('loop') !== 'false';
+			const spec = u.searchParams.get('spec') !== 'false';
 			const delay = Number(u.searchParams.get('delay') || '500');
 
 			const is_many_frames = p.includes(';');
 
-			const b = await render_grid(p, true, lc, scale, mir, delay, lp);
+			const b = await render_grid(p, spec, lc, scale, mir, delay, lp);
 
 			return new Response(b, { headers: { 'Content-Type': is_many_frames ? 'image/gif' : 'image/png' } });
 		} else if (path === '/convert') {
@@ -58,7 +65,7 @@ export default {
 			const p = u.searchParams.get('data') || '';
 			const is_grid = !/^[vmd]\d+?@/.test(p);
 			if (is_grid) {
-				return new Response(JSON.stringify(p.split(';').map((x) => ({ data: x, comment: '' }))), {
+				return new Response(JSON.stringify(p.split(';').map(x=>x.split(COMMENT_SEP)).map((x) => ({ data: x[0], comment: x[1]||'' }))), {
 					headers: { 'Content-Type': 'text/json' },
 				});
 			} else {
@@ -98,9 +105,11 @@ export default {
 			// console.log('path', i);
 			return new Response(board_editor(i), { headers: { 'Content-Type': 'text/html' } });
 		} else if (path === '/view') {
+			console.log(u);
 			let i = u.search.slice(1);
 			if (!/^[vmd]\d+?@/.test(i)) {
-				// console.log(i);
+
+				console.log(i);
 				i = gridToFumen(i);
 			}
 			return new Response(view(decoder.decode(i)), { headers: { 'Content-Type': 'text/html' } });

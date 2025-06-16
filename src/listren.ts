@@ -9,14 +9,14 @@ export function listren(res: number, filter: string = 'none') {
 	if (filter === 'only-i') {
 		p = p
 			.map((x) => {
-				x.continuations = x.continuations.filter((x) => x[0] === 'I' && !x[1].some((y) => y.every((z) => z === Piece.I)));
+				x.continuations = x.continuations.filter((x) => x[0] === 'I' && !x[1].board.some((y) => y.every((z) => z === Piece.I)));
 				return x;
 			})
 			.filter((x) => x.continuations.length > 0);
 	}
 
 	if (filter === 'side-well') {
-		p = p.filter((x) => x.grid.at(-1)?.[0] === Piece.E || x.grid.at(-1)?.[3] === Piece.E);
+		p = p.filter((x) => x.grid.board.at(-1)?.[0] === Piece.E || x.grid.board.at(-1)?.[3] === Piece.E);
 		p = p
 			.map((x) => {
 				x.continuations = x.continuations.filter((x) => after_line_clear(x[1], p) === undefined);

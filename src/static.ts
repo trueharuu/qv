@@ -610,6 +610,8 @@ export const board_editor = (g: string) => `<html>
       </div>
 
       <table id="board"></table>
+      <br>
+      <input id="comment" placeholder="comment"></input>
       <span><a id="vtotal">[view]</a> <a id="vpage">[view page]</a></span>
     </div>
 
@@ -644,6 +646,10 @@ export const board_editor = (g: string) => `<html>
             <input type="checkbox" id="loop" checked>
             <label for="loop">Loop Animation</label>
           </div>
+          <div class="render-option">
+            <input type="checkbox" id="spec" checked>
+            <label for="spec">Show highlights</label>
+          </div>
         </div>
         <div>
           <img id="preview" style="max-width:100%">
@@ -664,6 +670,7 @@ export const board_editor = (g: string) => `<html>
 		const preview = document.getElementById('preview');
 		const rowsInput = document.getElementById('rows');
 		const colsInput = document.getElementById('cols');
+    const comment = document.getElementById('comment');
 		let ROWS = rowsInput.value || 4;
 		let COLS = colsInput.value || 10;
 		const delay = document.getElementById('delay');
@@ -961,6 +968,12 @@ export const board_editor = (g: string) => `<html>
       updateOutput();
     }
 
+    document.getElementById('comment').onkeyup = () => {
+      saveState();
+      updateOutput();
+
+    }
+
 		function updateOutput(update = true) {
 			const grid = [];
 			for (let i = 0; i < ROWS; i++) {
@@ -981,7 +994,8 @@ export const board_editor = (g: string) => `<html>
 				grid.push(optimizedRow);
 			}
 			const gridString = grid.join('|');
-			pages[currentPage] = gridString;
+      console.log(comment.value);
+			pages[currentPage] = gridString + (comment.value === '' ? '' : '=' + comment.value);
 			// console.log(update);
 			if (update) {
 				output.value = pages.join(';');
@@ -993,7 +1007,7 @@ export const board_editor = (g: string) => `<html>
 
       updatePreview();
       vtotal.href = '/view?' + pages.join(';');
-      vpage.href = '/view?' + gridString;
+      vpage.href = '/view?' + pages[currentPage];
       
 		}
 
@@ -1001,7 +1015,8 @@ export const board_editor = (g: string) => `<html>
 			const delayMs = parseInt(delay.value) || 500;
 			const showClears = document.getElementById('clear').checked;
 			const shouldLoop = document.getElementById('loop').checked;
-			preview.src = \`/render.gif?grid=\${pages.join(';')}&delay=\${delayMs}&clear=\${showClears}&loop=\${shouldLoop}\`;
+			const spec = document.getElementById('spec').checked;
+			preview.src = \`/render.gif?grid=\${pages.join(';')}&delay=\${delayMs}&clear=\${showClears}&loop=\${shouldLoop}&spec=\${spec}\`;
 			document.getElementById('pageInfo').textContent = \`Page \${currentPage + 1}/\${pages.length}\`;
 			document.getElementById('prevPage').disabled = currentPage === 0;
 			document.getElementById('nextPage').disabled = currentPage === pages.length - 1;
@@ -1023,7 +1038,8 @@ export const board_editor = (g: string) => `<html>
 
 		function importPage(update = true) {
 			// console.log(1);
-			const currentGrid = pages[currentPage] || 'E'.repeat(COLS).repeat(ROWS);
+      const [p,c] = pages[currentPage].split('=');
+			const currentGrid = p || 'E'.repeat(COLS).repeat(ROWS);
 			const rows = currentGrid.split('|').map(x=>expandString(x));
 			// console.log("rows", rows);
 
@@ -1047,6 +1063,8 @@ export const board_editor = (g: string) => `<html>
 			rowsInput.value = ROWS;
 			colsInput.value = COLS;
 			initializeBoard();
+      comment.value=c||'';
+      
 
 			document.querySelectorAll('td').forEach(cell => {
 				cell.textContent = 'E';
@@ -1176,10 +1194,11 @@ export const board_editor = (g: string) => `<html>
 
 		document.getElementById('clear').addEventListener('change', updatePreview);
 		document.getElementById('loop').addEventListener('change', updatePreview);
+		document.getElementById('spec').addEventListener('change', updatePreview);
 
 		updateOutput(false);
-        const predata = window.location.search.slice(1);
-
+    const predata = decodeURIComponent(window.location.search.slice(1));
+    console.log(predata);
     if (predata) {
       if (/^v\\d+@/.test(predata)) {
         // console.log(predata);
@@ -1242,10 +1261,11 @@ export const view = (f: Pages) => {
   Viewing <input id='currently-viewing' style='width:90%' type=text></input><br><br>
   <div id=load></div>
   <br><br>
-  <span class=meta>Showing <b id=pages></b> pages</span> <a href='/edit?${encoder.encode(f)}'>[edit]</a>
+  <span class=meta>Showing <b id=pages></b> pages</span> <a id=toedit>[edit]</a>
   <script>
     let current = document.getElementById('currently-viewing');
     let pageCount = document.getElementById('pages');
+    let toedit = document.getElementById('toedit');
     current.value = location.search.slice(1);
 
     		function expandString(input) {
@@ -1271,7 +1291,9 @@ export const view = (f: Pages) => {
       let v = current.value;
       let d = await fetch('./decode?data='+encodeURIComponent(v)).then(x=>x.json());
 
-      // console.log(d);
+      toedit.href = '/edit?' + v;
+      console.log(d);
+
       const frames = d.map(x=>x.data.split('|').map(x=>expandString(x)));
       pageCount.innerText = frames.length;
       let txt = '';

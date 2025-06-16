@@ -10,7 +10,7 @@ export enum Piece {
 	E = 'E',
 	D = 'D',
 }
-export type Grid = Array<Array<Piece>>;
+export type Grid = {board:Array<Array<Piece>>,comment?:string};
 export function piece_from_str(f: string): Piece {
 	switch (f.toUpperCase()) {
 		case 'I':
@@ -115,16 +115,30 @@ export function piece_color_bright(p: Piece): number {
 
 
 
+export const COMMENT_SEP = '=';
 export function parse_grid(t: string): Grid {
-	return t.split('|').map((x) => x.split('').map((y) => piece_from_str(y)));
+	const [board, comment] = t.split(COMMENT_SEP);
+	return {board:board.split('|').map(x=>expandString(x)).map((x) => x.split('').map((y) => piece_from_str(y))),comment};
+}
+
+export function expandString(input: string) {
+	const regex = /(?:\[(\w+)\]|(\w))(\d*)/g;
+	const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
+	// console.log(i);
+	// console.log(input, i);
+	if (input === i) {
+		return i;
+	}
+
+	return expandString(i);
 }
 
 export function to_grid(v: Grid) {
-	return v.map((x) => x.map((y) => piece_to_str(y).toLowerCase()).join('')).join('|');
+	return v.board.map((x) => x.map((y) => piece_to_str(y).toLowerCase()).join('')).join('|') + COMMENT_SEP + v.comment;
 }
 
 export function mirror_grid(g: Grid) {
-	return g.map((x) => x.reverse().map((y) => mirror_of(y)));
+	return {board:g.board.map((x) => x.reverse().map((y) => mirror_of(y))),comment:g.comment};
 }
 
 export function mirror_of(y: Piece): Piece {
