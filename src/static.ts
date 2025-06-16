@@ -562,6 +562,16 @@ export const board_editor = (g: string) => `<html>
       background: rgba(255, 255, 107, 0.1);
       border-color: #ffff6b;
     }
+
+    .info {
+      color: #6b6bff;
+      border-color: #6b6bff;
+    }
+
+    .info:hover {
+      background: rgba(107, 107, 255, 0.1);
+      border-color: #6b6bff;
+    }
   </style>
 </head>
 <body>
@@ -597,11 +607,15 @@ export const board_editor = (g: string) => `<html>
           <button id="edit-only-gray">Only Gray</button>
           <button id="edit-skim">Skim</button>
           <button id="edit-clear" class=danger>Clear</button>
-          
           <button id="edit-undo" class=warn>Undo</button>
           <button id="edit-redo" class=warn>Redo</button>
         </div>
-        
+        <div>
+          <button id="edit-shu" class=info>Shift Up</button>
+          <button id="edit-shd" class=info>Shift Down</button>
+          <button id="edit-shl" class=info>Shift Left</button>
+          <button id="edit-shr" class=info>Shift Right</button>
+        </div>
         <div>
           <label>Size: </label>
           <input type="number" id="cols" value="10" min="0" style="width:50px"> &times;
@@ -986,6 +1000,42 @@ export const board_editor = (g: string) => `<html>
       const removed_lines = r.filter(x => !x.includes('E')).length;
       const t = [...Array(removed_lines).fill('E'.repeat(r[0].length)), ...r.filter(x => x.includes('E'))]
 
+      pages[currentPage] = t.join('|');
+      importPage();
+      updateOutput();
+    }
+
+    document.getElementById('edit-shu').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      const t = [...r.slice(1), 'E'.repeat(r[0].length)];
+      pages[currentPage] = t.join('|');
+      importPage();
+      updateOutput();
+    }
+
+    document.getElementById('edit-shd').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      const t = ['E'.repeat(r[0].length),...r.slice(0,-1)];
+      pages[currentPage] = t.join('|');
+      importPage();
+      updateOutput();
+    }
+
+    document.getElementById('edit-shl').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      const t = r.map(x=>x.slice(1)+'E');
+      pages[currentPage] = t.join('|');
+      importPage();
+      updateOutput();
+    }
+
+    document.getElementById('edit-shr').onclick = () => {
+      saveState();
+      const r = expandString(pages[currentPage]).split('|');
+      const t = r.map(x=>'E'+x.slice(0,-1));
       pages[currentPage] = t.join('|');
       importPage();
       updateOutput();
