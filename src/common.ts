@@ -7,6 +7,7 @@ export async function parallel<T, U>(v: Array<T>, f: (t: T, idx: number) => Prom
 
 export const alcmemo = new Map<string, Pattern>();
 export function after_line_clear(g: Grid, patterns: Array<Pattern>): Pattern | undefined {
+	// throw new Error(g);
 	const s = g.board.join('|');
 	if (alcmemo.has(s)) {
 		return alcmemo.get(s);
