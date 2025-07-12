@@ -952,36 +952,46 @@ export const board_editor = (g: string) => `<html>
 
     document.getElementById('edit-mirror').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      console.log(g, comment);
+      const r = g.split('|');
+      console.log(r);
       for (let i = 0; i < r.length; i++) {
         r[i] = r[i].split('').reverse().map(x=>({J:'L',L:'J',Z:'S',S:'Z'})[x] || x).join('');
       }
 
-      pages[currentPage] = r.join('|');
+      // console.log(comment);
+
+      pages[currentPage] = r.join('|') + (comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
 
     document.getElementById('edit-to-gray').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      const r = g.split('|');
       for (let i = 0; i < r.length; i++) {
         r[i] = r[i].split('').map(x => x === 'E' ? 'E' : 'G').join('');
       }
 
-      pages[currentPage] = r.join('|');
+      pages[currentPage] = r.join('|')+(comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
 
     document.getElementById('edit-only-gray').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      const r = g.split('|');
       for (let i = 0; i < r.length; i++) {
         r[i] = r[i].split('').map(x => x === 'G' ? 'G' : 'E').join('');
       }
 
-      pages[currentPage] = r.join('|');
+      pages[currentPage] = r.join('|')+(comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
@@ -996,47 +1006,57 @@ export const board_editor = (g: string) => `<html>
 
     document.getElementById('edit-skim').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      const r = g.split('|');
       const removed_lines = r.filter(x => !x.includes('E')).length;
       const t = [...Array(removed_lines).fill('E'.repeat(r[0].length)), ...r.filter(x => x.includes('E'))]
 
-      pages[currentPage] = t.join('|');
+      pages[currentPage] = t.join('|')+(comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
 
     document.getElementById('edit-shu').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      const r = g.split('|');
       const t = [...r.slice(1), 'E'.repeat(r[0].length)];
-      pages[currentPage] = t.join('|');
+      pages[currentPage] = t.join('|')+(comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
 
     document.getElementById('edit-shd').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      const r = g.split('|');
       const t = ['E'.repeat(r[0].length),...r.slice(0,-1)];
-      pages[currentPage] = t.join('|');
+      pages[currentPage] = t.join('|')+(comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
 
     document.getElementById('edit-shl').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      const r = g.split('|');
       const t = r.map(x=>x.slice(1)+'E');
-      pages[currentPage] = t.join('|');
+      pages[currentPage] = t.join('|')+(comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
 
     document.getElementById('edit-shr').onclick = () => {
       saveState();
-      const r = expandString(pages[currentPage]).split('|');
+      const z = expandString(pages[currentPage]);
+      const [g, comment] = z.split('=');
+      const r = g.split('|');
       const t = r.map(x=>'E'+x.slice(0,-1));
-      pages[currentPage] = t.join('|');
+      pages[currentPage] = t.join('|')+(comment?('='+decodeURIComponent(comment)):'');
       importPage();
       updateOutput();
     }
@@ -1068,7 +1088,7 @@ export const board_editor = (g: string) => `<html>
 			}
 			const gridString = grid.join('|');
       // console.log(comment.value);
-			pages[currentPage] = gridString + (comment.value === '' ? '' : '=' + comment.value);
+			pages[currentPage] = gridString + (comment.value === '' ? '' : '=' + encodeURIComponent(comment.value));
 			// console.log(update);
 			if (update) {
 				output.value = pages.join(';');
@@ -1101,16 +1121,18 @@ export const board_editor = (g: string) => `<html>
 			document.getElementById('removePage').disabled = pages.length <= 1;
 		}
 
-		function expandString(input) {
+		function expandString(z) {
+      console.log('expanding', z);
+      const [input, comment] = z.split('=');
 			const regex = /(?:\\[(\\w+)\\]|(\\w))(\\d*)/g;
 			const i = input.replaceAll(regex, ($, $1, $2, $3) => ($1 || $2).repeat(Number($3 || '1')));
 			// console.log(i);
 			// console.log(input, i);
 			if (input === i) {
-				return i;
+				return i + (comment ? ('=' + comment) : '');
 			}
 
-			return expandString(i);
+			return expandString(i) + (comment ? ('=' + comment) : '');
 		}
 		// console.log(expandString('E2'));
 
@@ -1307,7 +1329,6 @@ export const view = (f: Pages) => {
 			] as const
 	);
 
-
 	return `<html>
 
 <head>
@@ -1370,6 +1391,7 @@ export const view = (f: Pages) => {
     async function update() {
       let v = current.value;
       let d = await fetch('./decode?data='+encodeURIComponent(v)).then(x=>x.json());
+      console.log(d);
 
       toedit.href = '/edit?' + v;
       // console.log(d);

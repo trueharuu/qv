@@ -72,7 +72,7 @@ export default {
 				});
 			} else {
 				return new Response(
-					JSON.stringify(decoder.decode(p).map((x) => ({ data: fumenToGrid(encoder.encode([x])), comment: x.comment }))),
+					JSON.stringify(decoder.decode(p).map((x) => fumenToGrid(encoder.encode([x])).split('=')).map(x=> ({ data: x[0], comment: x[1] }))),
 					{ headers: { 'Content-Type': 'text/plain' } }
 				);
 			}
