@@ -19,13 +19,13 @@ export function resp() {
       .filter(x => x !== '')
       .map(x => [
         piece_from_str(x.split(',')[0]),
-        x
+        {board:x
           .split(',')[1]
           .split('|')
-          .map(y => y.split('').map(z => piece_from_str(z))),
-      ]);
+          .map(y => y.split('').map(z => piece_from_str(z)))},
+      ] satisfies [Piece, Grid]);
     resp[r] ||= [];
-    resp[r].push({ id, grid: {board:g2}, continuations: c2 } as Pattern);
+    resp[r].push({ id, grid: {board:g2}, continuations: c2 });
   }
 
   return resp;
